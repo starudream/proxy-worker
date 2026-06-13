@@ -73,7 +73,7 @@ function parseRepositoryReference(repositoryReference) {
 function getDockerRoute(pathname) {
   if (pathname === "/v2" || pathname === "/v2/") {
     return {
-      registry: defaultRegistry(),
+      registry: null,
       repository: null,
       upstreamPath: "/v2/",
     };
@@ -266,6 +266,16 @@ function rewriteAuthenticateHeader(authenticate, origin, registry) {
   });
 }
 
+function dockerRegistryBaseResponse() {
+  return new Response(null, {
+    headers: {
+      "Docker-Distribution-API-Version": "registry/2.0",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Expose-Headers": "*",
+    },
+  });
+}
+
 export async function handleDocker(request, env) {
   const preflight = corsPreflight(request);
   if (preflight) {
@@ -274,6 +284,10 @@ export async function handleDocker(request, env) {
 
   const url = new URL(request.url);
   const context = getDockerContext(url);
+
+  if (context?.upstreamPath === "/v2/") {
+    return dockerRegistryBaseResponse();
+  }
 
   if (!context || !context.registry) {
     return textResponse("invalid docker upstream", 400);
