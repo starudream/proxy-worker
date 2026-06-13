@@ -1,37 +1,37 @@
 # Proxy Worker
 
-Cloudflare Workers 代理服务，提供 GitHub 文件代理和 Docker registry 镜像代理。
+A Cloudflare Workers proxy service for GitHub file downloads and Docker registry mirror traffic.
 
-## 访问地址
+## Endpoints
 
-| 线路            | 地址                            |
-|---------------|-------------------------------|
-| 国际 Cloudflare | <https://proxy.starudream.cn> |
-| 国内腾讯云 EO      | <https://proxy.52xckl.cn>     |
+| Route | URL |
+|-------|-----|
+| Global Cloudflare | <https://proxy.starudream.cn> |
+| Tencent Cloud EO for mainland China | <https://proxy.52xckl.cn> |
 
-下文示例默认使用 `https://proxy.starudream.cn`，国内网络可将域名替换为 `https://proxy.52xckl.cn`。
+The examples below use `https://proxy.starudream.cn` by default. For mainland China networks, replace the domain with `https://proxy.52xckl.cn`.
 
-## GitHub 代理
+## GitHub Proxy
 
-GitHub 代理用于下载允许列表中的 GitHub release、archive 和 raw 文件。
+The GitHub proxy downloads allowlisted GitHub release, archive, and raw files.
 
-### 完整 URL
+### Full URL
 
-将 GitHub URL 放到代理地址后面：
+Append the GitHub URL to the proxy endpoint:
 
 ```bash
 curl -L https://proxy.starudream.cn/github/https://github.com/k3s-io/k3s/releases/download/v1.33.1%2Bk3s1/k3s
 ```
 
-也可以省略 `/github/` 前缀：
+The `/github/` prefix can also be omitted:
 
 ```bash
 curl -L https://proxy.starudream.cn/https://github.com/k3s-io/k3s/releases/download/v1.33.1%2Bk3s1/k3s
 ```
 
-### 短路径
+### Short Path
 
-支持 `owner/repo/releases/...`、`owner/repo/archive/...`、`owner/repo/raw/...` 形式：
+The proxy supports `owner/repo/releases/...`, `owner/repo/archive/...`, and `owner/repo/raw/...` paths:
 
 ```bash
 curl -L https://proxy.starudream.cn/k3s-io/k3s/raw/refs/tags/v1.33.1%2Bk3s1/install.sh
@@ -41,28 +41,28 @@ curl -L https://proxy.starudream.cn/k3s-io/k3s/raw/refs/tags/v1.33.1%2Bk3s1/inst
 curl -L https://proxy.starudream.cn/fatedier/frp/releases/download/v0.62.1/frp_0.62.1_linux_amd64.tar.gz
 ```
 
-当前 GitHub 允许列表在 `src/settings.json` 中维护：
+The current GitHub allowlist is maintained in `src/settings.json`:
 
-- owners: `docker`、`istio`、`k3s-io`、`starudream`
+- owners: `docker`, `istio`, `k3s-io`, `starudream`
 - repositories: `fatedier/frp`
 
-## Docker 代理
+## Docker Proxy
 
-Docker 代理可作为 registry mirror 使用。镜像路径写在代理域名后面：
+The Docker proxy can be used as a registry mirror. Put the image path after the proxy domain:
 
 ```bash
 docker pull proxy.starudream.cn/docker.io/library/hello-world:latest
 ```
 
-国内线路：
+Mainland China route:
 
 ```bash
 docker pull proxy.52xckl.cn/docker.io/library/hello-world:latest
 ```
 
-### Docker Hub 默认规则
+### Docker Hub Defaults
 
-`docker.io` 是默认 registry，`library` 是默认 namespace。因此下面三种写法等价：
+`docker.io` is the default registry, and `library` is the default namespace. These three forms are equivalent:
 
 ```bash
 docker pull proxy.starudream.cn/docker.io/library/hello-world:latest
@@ -70,15 +70,15 @@ docker pull proxy.starudream.cn/library/hello-world:latest
 docker pull proxy.starudream.cn/hello-world:latest
 ```
 
-都会代理到：
+All of them proxy to:
 
 ```text
 docker.io/library/hello-world:latest
 ```
 
-### 其他 registry
+### Other Registries
 
-显式把 registry 写在镜像路径前面：
+Put the registry explicitly at the beginning of the image path:
 
 ```bash
 docker pull proxy.starudream.cn/ghcr.io/home-assistant/home-assistant:latest
@@ -87,61 +87,82 @@ docker pull proxy.starudream.cn/mcr.microsoft.com/dotnet/runtime:9.0
 docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 ```
 
-当前支持的 registry：
+Currently supported registries:
 
-| Registry            | 是否需要白名单 |
-|---------------------|---------|
-| `docker.io`         | 是       |
-| `gcr.io`            | 是       |
-| `ghcr.io`           | 是       |
-| `quay.io`           | 是       |
-| `registry.k8s.io`   | 否       |
-| `mcr.microsoft.com` | 否       |
-| `docker.elastic.co` | 否       |
+| Registry | Allowlist Required |
+|----------|--------------------|
+| `docker.io` | Yes |
+| `gcr.io` | Yes |
+| `ghcr.io` | Yes |
+| `quay.io` | Yes |
+| `registry.k8s.io` | No |
+| `mcr.microsoft.com` | No |
+| `docker.elastic.co` | No |
 
-需要白名单的 registry 只允许 `src/settings.json` 中配置的镜像仓库。当前包含：
+Registries that require an allowlist only proxy image repositories configured in `src/settings.json`. The current list includes:
 
 - `docker.io/library/*`
 - `docker.io/starudream/*`
 - `ghcr.io/starudream/*`
-- `ghcr.io/home-assistant/home-assistant`
-- `ghcr.io/berriai/litellm`
-- `docker.io/victoriametrics/victoria-metrics`
-- `docker.io/vaultwarden/server`
-- `docker.io/redis`
+- `docker.io/binwiederhier/ntfy`
+- `docker.io/blinkospace/blinko`
+- `docker.io/calciumion/new-api`
+- `docker.io/casbin/casdoor`
+- `docker.io/clickhouse/clickhouse-server`
+- `docker.io/couchdb`
+- `docker.io/dbeaver/cloudbeaver`
+- `docker.io/diygod/rsshub`
+- `docker.io/erikdubbelboer/phpredisadmin`
+- `docker.io/freshrss/freshrss`
+- `docker.io/grafana/grafana-oss`
+- `docker.io/headscale/headscale`
+- `docker.io/langfuse/langfuse`
+- `docker.io/langfuse/langfuse-worker`
+- `docker.io/lobehub/lobehub`
+- `docker.io/paradedb/paradedb`
+- `docker.io/prom/alertmanager`
+- `docker.io/prom/node-exporter`
 - `docker.io/prom/prometheus`
+- `docker.io/redis`
+- `docker.io/searxng/searxng`
+- `docker.io/vaultwarden/server`
+- `docker.io/victoriametrics/victoria-metrics`
+- `docker.io/weishaw/sub2api`
+- `ghcr.io/berriai/litellm`
+- `ghcr.io/home-assistant/home-assistant`
+- `ghcr.io/starudream/sign-task`
 
-完整白名单以 `src/settings.json` 为准。
+The complete allowlist is defined in `src/settings.json`.
 
-## 配置
+## Configuration
 
-主要配置集中在 `src/settings.json`：
+Main configuration lives in `src/settings.json`:
 
-- `github.owners`: 允许代理的 GitHub owner。
-- `github.repositories`: 允许代理的 GitHub 仓库。
-- `docker.registries`: Docker registry 上游和白名单策略。
-- `docker.repositories`: 需要白名单的 Docker 镜像仓库。
+- `github.owners`: GitHub owners allowed by the proxy.
+- `github.repositories`: GitHub repositories allowed by the proxy.
+- `docker.registries`: Docker registry upstreams and allowlist policies.
+- `docker.repositories`: Docker image repositories that require allowlisting.
 
-排序和去重：
+Sort and deduplicate the configuration:
 
 ```bash
 pnpm sort:settings
 ```
 
-排序规则：
+Sorting rules:
 
-- 数组会去重。
-- 包含 `*` 的规则排在前面。
-- 其余内容按字母顺序排序。
+- Arrays are deduplicated.
+- Rules containing `*` are placed first.
+- Other entries are sorted alphabetically.
 
-## 部署
+## Deployment
 
-项目使用 Wrangler 部署到 Cloudflare Workers：
+This project deploys to Cloudflare Workers with Wrangler:
 
 ```bash
 pnpm deploy
 ```
 
-GitHub Actions 会在 `master` 分支 push 后执行部署流程。
+GitHub Actions runs the deployment workflow after pushes to the `master` branch.
 
 ## [License](./LICENSE)
