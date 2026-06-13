@@ -116,11 +116,42 @@ function getTokenScopes(url) {
     .filter(Boolean);
 }
 
-function getRepositoriesFromScopes(scopes, registry) {
-  return scopes
-    .map((scope) => /^repository:([^:]+):/.exec(scope))
-    .filter(Boolean)
-    .map((match) => normalizeRepositoryForRegistry(match[1], registry));
+function parseTokenScope(scope, fallbackRegistry) {
+  const match = /^repository:([^:]+):(.+)$/.exec(scope);
+  if (!match) {
+    return null;
+  }
+
+  const parts = match[1].split("/").filter(Boolean);
+  const explicitRegistry = resolveRegistry(parts[0]);
+  const registry = explicitRegistry || fallbackRegistry || defaultRegistry();
+  const repository = normalizeRepositoryForRegistry(match[1], registry);
+  if (!repository) {
+    return null;
+  }
+
+  return {
+    registry,
+    repository,
+    upstreamScope: `repository:${repository}:${match[2]}`,
+  };
+}
+
+function getTokenScopeRequests(scopes, fallbackRegistry) {
+  return scopes.map((scope) => parseTokenScope(scope, fallbackRegistry)).filter(Boolean);
+}
+
+function getTokenRegistry(scopeRequests, fallbackRegistry) {
+  if (scopeRequests.length === 0) {
+    return fallbackRegistry || defaultRegistry();
+  }
+
+  const registry = scopeRequests[0].registry;
+  if (!scopeRequests.every((scopeRequest) => scopeRequest.registry.name === registry.name)) {
+    return null;
+  }
+
+  return registry;
 }
 
 function repositoryAllowKeys(repository, registry) {
@@ -184,7 +215,15 @@ function getDefaultTokenRealm(registry) {
   return `https://${registry.host}/token`;
 }
 
-function getTokenUrl(url, registry) {
+function getRegistryService(registry) {
+  if (registry.name === DOCKER_HUB_REGISTRY) {
+    return "registry.docker.io";
+  }
+
+  return registry.host;
+}
+
+function getTokenUrl(url, registry, scopeRequests) {
   const realm = url.searchParams.get("realm") || getDefaultTokenRealm(registry);
   let realmUrl;
   try {
@@ -200,13 +239,38 @@ function getTokenUrl(url, registry) {
   const tokenUrl = new URL(realmUrl.href);
   const upstreamParams = new URLSearchParams(getUpstreamSearch(url));
   for (const [ key, value ] of upstreamParams) {
+    if (key === "service" || key === "scope") {
+      continue;
+    }
+
     tokenUrl.searchParams.append(key, value);
+  }
+  tokenUrl.searchParams.set("service", getRegistryService(registry));
+  for (const scopeRequest of scopeRequests) {
+    tokenUrl.searchParams.append("scope", scopeRequest.upstreamScope);
   }
   return tokenUrl;
 }
 
-async function fetchDockerToken(request, url, registry) {
-  const tokenUrl = getTokenUrl(url, registry);
+function dockerAnonymousTokenResponse() {
+  return new Response(JSON.stringify({
+    token: "proxy",
+    access_token: "proxy",
+    expires_in: 300,
+    issued_at: new Date().toISOString(),
+  }), {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+async function fetchDockerToken(request, url, registry, scopeRequests) {
+  if (!registry.authHost && !registry.requireAllowlist) {
+    return dockerAnonymousTokenResponse();
+  }
+
+  const tokenUrl = getTokenUrl(url, registry, scopeRequests);
   if (!tokenUrl) {
     return textResponse("invalid docker token realm", 400);
   }
@@ -266,13 +330,17 @@ function rewriteAuthenticateHeader(authenticate, origin, registry) {
   });
 }
 
-function dockerRegistryBaseResponse() {
-  return new Response(null, {
-    headers: {
-      "Docker-Distribution-API-Version": "registry/2.0",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Expose-Headers": "*",
-    },
+function dockerRegistryBaseAuthenticate(origin) {
+  const tokenRealm = new URL("/token", origin);
+  return `Bearer realm="${tokenRealm.href}",service="${new URL(origin).host}"`;
+}
+
+function dockerRegistryBaseResponse(origin) {
+  return textResponse("authentication required", 401, {
+    "Www-Authenticate": dockerRegistryBaseAuthenticate(origin),
+    "Docker-Distribution-API-Version": "registry/2.0",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "*",
   });
 }
 
@@ -286,7 +354,7 @@ export async function handleDocker(request, env) {
   const context = getDockerContext(url);
 
   if (context?.upstreamPath === "/v2/") {
-    return dockerRegistryBaseResponse();
+    return dockerRegistryBaseResponse(url.origin);
   }
 
   if (!context || !context.registry) {
@@ -295,19 +363,24 @@ export async function handleDocker(request, env) {
 
   if (context.upstreamPath === "/token") {
     const scopes = getTokenScopes(url);
-    const repositories = getRepositoriesFromScopes(scopes, context.registry);
-    if (repositories.length !== scopes.length) {
+    const scopeRequests = getTokenScopeRequests(scopes, context.registry);
+    if (scopeRequests.length !== scopes.length) {
       return textResponse("forbidden", 403);
     }
 
-    for (const repository of repositories) {
-      const denied = assertRepositoryAllowed(repository, context.registry, env);
+    const tokenRegistry = getTokenRegistry(scopeRequests, context.registry);
+    if (!tokenRegistry) {
+      return textResponse("forbidden", 403);
+    }
+
+    for (const scopeRequest of scopeRequests) {
+      const denied = assertRepositoryAllowed(scopeRequest.repository, tokenRegistry, env);
       if (denied) {
         return denied;
       }
     }
 
-    return fetchDockerToken(request, url, context.registry);
+    return fetchDockerToken(request, url, tokenRegistry, scopeRequests);
   }
 
   if (context.repository) {
