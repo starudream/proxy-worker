@@ -60,7 +60,6 @@
       "docker.io/calciumion/new-api",
       "docker.io/casbin/casdoor",
       "docker.io/clickhouse/clickhouse-server",
-      "docker.io/couchdb",
       "docker.io/dbeaver/cloudbeaver",
       "docker.io/diygod/rsshub",
       "docker.io/erikdubbelboer/phpredisadmin",
@@ -74,14 +73,13 @@
       "docker.io/prom/alertmanager",
       "docker.io/prom/node-exporter",
       "docker.io/prom/prometheus",
-      "docker.io/redis",
       "docker.io/searxng/searxng",
+      "docker.io/seriousm4x/upsnap",
       "docker.io/vaultwarden/server",
       "docker.io/victoriametrics/victoria-metrics",
       "docker.io/weishaw/sub2api",
       "ghcr.io/berriai/litellm",
-      "ghcr.io/home-assistant/home-assistant",
-      "ghcr.io/starudream/sign-task"
+      "ghcr.io/home-assistant/home-assistant"
     ]
   }
 }
