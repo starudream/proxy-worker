@@ -1,5 +1,7 @@
 # Proxy Worker
 
+[English](./README.md) | [简体中文](./README.zh_CN.md)
+
 Cloudflare Workers 代理服务，提供 GitHub 文件代理和 Docker registry 镜像代理。
 
 ## 访问地址
@@ -41,10 +43,7 @@ curl -L https://proxy.starudream.cn/k3s-io/k3s/raw/refs/tags/v1.33.1%2Bk3s1/inst
 curl -L https://proxy.starudream.cn/fatedier/frp/releases/download/v0.62.1/frp_0.62.1_linux_amd64.tar.gz
 ```
 
-当前 GitHub 允许列表在 `src/settings.json` 中维护：
-
-- owners: `docker`、`istio`、`k3s-io`、`starudream`
-- repositories: `fatedier/frp`
+当前 GitHub 允许列表在 [`src/settings.json`](./src/settings.json) 中维护。
 
 ## Docker 代理
 
@@ -99,44 +98,11 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 | `mcr.microsoft.com` | 否       |
 | `docker.elastic.co` | 否       |
 
-需要白名单的 registry 只允许 `src/settings.json` 中配置的镜像仓库。当前包含：
-
-- `docker.io/library/*`
-- `docker.io/starudream/*`
-- `ghcr.io/starudream/*`
-- `docker.io/binwiederhier/ntfy`
-- `docker.io/blinkospace/blinko`
-- `docker.io/calciumion/new-api`
-- `docker.io/casbin/casdoor`
-- `docker.io/clickhouse/clickhouse-server`
-- `docker.io/couchdb`
-- `docker.io/dbeaver/cloudbeaver`
-- `docker.io/diygod/rsshub`
-- `docker.io/erikdubbelboer/phpredisadmin`
-- `docker.io/freshrss/freshrss`
-- `docker.io/grafana/grafana-oss`
-- `docker.io/headscale/headscale`
-- `docker.io/langfuse/langfuse`
-- `docker.io/langfuse/langfuse-worker`
-- `docker.io/lobehub/lobehub`
-- `docker.io/paradedb/paradedb`
-- `docker.io/prom/alertmanager`
-- `docker.io/prom/node-exporter`
-- `docker.io/prom/prometheus`
-- `docker.io/redis`
-- `docker.io/searxng/searxng`
-- `docker.io/vaultwarden/server`
-- `docker.io/victoriametrics/victoria-metrics`
-- `docker.io/weishaw/sub2api`
-- `ghcr.io/berriai/litellm`
-- `ghcr.io/home-assistant/home-assistant`
-- `ghcr.io/starudream/sign-task`
-
-完整白名单以 `src/settings.json` 为准。
+需要白名单的 registry 只允许 [`src/settings.json`](./src/settings.json) 中配置的镜像仓库。
 
 ## 配置
 
-主要配置集中在 `src/settings.json`：
+主要配置集中在 [`src/settings.json`](./src/settings.json)：
 
 - `github.owners`: 允许代理的 GitHub owner。
 - `github.repositories`: 允许代理的 GitHub 仓库。
