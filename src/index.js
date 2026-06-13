@@ -1,15 +1,24 @@
-/**
- * Welcome to Cloudflare Workers! This is your first worker.
- *
- * - Run `npm run dev` in your terminal to start a development server
- * - Open a browser tab at http://localhost:8787/ to see your worker in action
- * - Run `npm run deploy` to publish your worker
- *
- * Learn more at https://developers.cloudflare.com/workers/
- */
+import { HOME_HTML } from "./config";
+import { handleDocker, isDockerRequest } from "./docker";
+import { handleGitHub, isGitHubRequest } from "./github";
+import { htmlResponse, textResponse } from "./http";
 
 export default {
-	async fetch(request, env, ctx) {
-		return new Response("Hello World!");
-	},
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/") {
+      return htmlResponse(HOME_HTML);
+    }
+
+    if (isGitHubRequest(url)) {
+      return handleGitHub(request, env);
+    }
+
+    if (isDockerRequest(url)) {
+      return handleDocker(request, env);
+    }
+
+    return textResponse("not found", 404);
+  },
 };

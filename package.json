@@ -5,6 +5,7 @@
   "scripts": {
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
+    "sort:settings": "node scripts/sort-settings.js",
     "start": "wrangler dev"
   },
   "devDependencies": {

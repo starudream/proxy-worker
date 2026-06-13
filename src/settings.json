@@ -1,0 +1,87 @@
+{
+  "github": {
+    "owners": [
+      "docker",
+      "istio",
+      "k3s-io",
+      "starudream"
+    ],
+    "repositories": [
+      "fatedier/frp"
+    ]
+  },
+  "docker": {
+    "defaultRegistry": "docker.io",
+    "defaultNamespace": "library",
+    "registries": {
+      "docker.io": {
+        "host": "registry-1.docker.io",
+        "authHost": "auth.docker.io",
+        "aliases": [],
+        "requireAllowlist": true
+      },
+      "gcr.io": {
+        "host": "gcr.io",
+        "aliases": [],
+        "requireAllowlist": true
+      },
+      "ghcr.io": {
+        "host": "ghcr.io",
+        "aliases": [],
+        "requireAllowlist": true
+      },
+      "registry.k8s.io": {
+        "host": "registry.k8s.io",
+        "aliases": [],
+        "requireAllowlist": false
+      },
+      "mcr.microsoft.com": {
+        "host": "mcr.microsoft.com",
+        "aliases": [],
+        "requireAllowlist": false
+      },
+      "docker.elastic.co": {
+        "host": "docker.elastic.co",
+        "aliases": [],
+        "requireAllowlist": false
+      },
+      "quay.io": {
+        "host": "quay.io",
+        "aliases": [],
+        "requireAllowlist": true
+      }
+    },
+    "repositories": [
+      "docker.io/library/*",
+      "docker.io/starudream/*",
+      "ghcr.io/starudream/*",
+      "docker.io/binwiederhier/ntfy",
+      "docker.io/blinkospace/blinko",
+      "docker.io/calciumion/new-api",
+      "docker.io/casbin/casdoor",
+      "docker.io/clickhouse/clickhouse-server",
+      "docker.io/couchdb",
+      "docker.io/dbeaver/cloudbeaver",
+      "docker.io/diygod/rsshub",
+      "docker.io/erikdubbelboer/phpredisadmin",
+      "docker.io/freshrss/freshrss",
+      "docker.io/grafana/grafana-oss",
+      "docker.io/headscale/headscale",
+      "docker.io/langfuse/langfuse",
+      "docker.io/langfuse/langfuse-worker",
+      "docker.io/lobehub/lobehub",
+      "docker.io/paradedb/paradedb",
+      "docker.io/prom/alertmanager",
+      "docker.io/prom/node-exporter",
+      "docker.io/prom/prometheus",
+      "docker.io/redis",
+      "docker.io/searxng/searxng",
+      "docker.io/vaultwarden/server",
+      "docker.io/victoriametrics/victoria-metrics",
+      "docker.io/weishaw/sub2api",
+      "ghcr.io/berriai/litellm",
+      "ghcr.io/home-assistant/home-assistant",
+      "ghcr.io/starudream/sign-task"
+    ]
+  }
+}
