@@ -52,6 +52,7 @@
       }
     },
     "repositories": [
+      "docker.io/1panel/*",
       "docker.io/library/*",
       "docker.io/starudream/*",
       "ghcr.io/starudream/*",
