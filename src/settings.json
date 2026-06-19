@@ -75,6 +75,7 @@
       "docker.io/langgenius/dify-api",
       "docker.io/langgenius/dify-plugin-daemon",
       "docker.io/langgenius/dify-sandbox",
+      "docker.io/langgenius/qdrant",
       "docker.io/lobehub/lobehub",
       "docker.io/paradedb/paradedb",
       "docker.io/prom/alertmanager",
