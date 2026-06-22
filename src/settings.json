@@ -100,6 +100,7 @@
       "ghcr.io/docker-mailserver/docker-mailserver",
       "ghcr.io/home-assistant/home-assistant",
       "ghcr.io/librespeed/speedtest",
+      "ghcr.io/mhsanaei/3x-ui",
       "ghcr.io/seriousm4x/upsnap",
       "ghcr.io/xtls/xray-core"
     ]
