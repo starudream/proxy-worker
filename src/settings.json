@@ -8,7 +8,11 @@
     ],
     "repositories": [
       "clash-verge-rev/clash-verge-rev",
-      "fatedier/frp"
+      "fatedier/frp",
+      "MetaCubeX/ClashMetaForAndroid",
+      "MetaCubeX/meta-rules-dat",
+      "MetaCubeX/mihomo",
+      "TG-Twilight/AWAvenue-Ads-Rule"
     ]
   },
   "docker": {
