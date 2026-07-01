@@ -8,10 +8,14 @@
     ],
     "repositories": [
       "clash-verge-rev/clash-verge-rev",
+      "daijro/camoufox",
       "fatedier/frp",
+      "GmSSL/SoftSDF",
+      "guanzhi/GmSSL",
       "MetaCubeX/ClashMetaForAndroid",
       "MetaCubeX/meta-rules-dat",
       "MetaCubeX/mihomo",
+      "mtrojnar/osslsigncode",
       "TG-Twilight/AWAvenue-Ads-Rule"
     ]
   },
@@ -61,6 +65,7 @@
       "docker.io/gitlab/*",
       "docker.io/grafana/*",
       "docker.io/library/*",
+      "docker.io/moby/*",
       "docker.io/starudream/*",
       "docker.io/ubuntu/*",
       "docker.io/victoriametrics/*",
@@ -84,6 +89,7 @@
       "docker.io/langgenius/dify-plugin-daemon",
       "docker.io/langgenius/dify-sandbox",
       "docker.io/langgenius/qdrant",
+      "docker.io/librespeed/speedtest",
       "docker.io/lobehub/lobehub",
       "docker.io/louislam/uptime-kuma",
       "docker.io/openproject/openproject",
