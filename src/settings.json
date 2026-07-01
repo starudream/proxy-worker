@@ -71,6 +71,7 @@
       "docker.io/victoriametrics/*",
       "ghcr.io/starudream/*",
       "docker.io/adguard/adguardhome",
+      "docker.io/astral/uv",
       "docker.io/binwiederhier/ntfy",
       "docker.io/blinkospace/blinko",
       "docker.io/calciumion/new-api",
