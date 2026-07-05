@@ -4,6 +4,7 @@
       "docker",
       "istio",
       "k3s-io",
+      "prometheus",
       "starudream"
     ],
     "repositories": [
