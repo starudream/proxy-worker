@@ -5,6 +5,7 @@
       "istio",
       "k3s-io",
       "prometheus",
+      "rancher",
       "starudream"
     ],
     "repositories": [
