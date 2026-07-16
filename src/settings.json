@@ -96,6 +96,7 @@
       "docker.io/librespeed/speedtest",
       "docker.io/lobehub/lobehub",
       "docker.io/louislam/uptime-kuma",
+      "docker.io/maximhq/bifrost",
       "docker.io/openproject/openproject",
       "docker.io/openvpn/openvpn-as",
       "docker.io/paradedb/paradedb",
