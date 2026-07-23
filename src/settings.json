@@ -113,6 +113,7 @@
       "docker.io/shieldsio/shields",
       "docker.io/snowdreamtech/frpc",
       "docker.io/sonatype/nexus3",
+      "docker.io/stalwartlabs/stalwart",
       "docker.io/vaultwarden/server",
       "docker.io/victoriametrics/victoria-metrics",
       "docker.io/weishaw/sub2api",
