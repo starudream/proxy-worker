@@ -73,6 +73,7 @@
       "docker.io/starudream/*",
       "docker.io/ubuntu/*",
       "docker.io/victoriametrics/*",
+      "ghcr.io/mailu/*",
       "ghcr.io/starudream/*",
       "docker.io/adguard/adguardhome",
       "docker.io/astral/uv",
