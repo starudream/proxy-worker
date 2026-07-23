@@ -1,6 +1,7 @@
 {
   "github": {
     "owners": [
+      "adoptium",
       "docker",
       "istio",
       "k3s-io",
