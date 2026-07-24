@@ -85,6 +85,7 @@
       "docker.io/clickhouse/clickhouse-server",
       "docker.io/dbeaver/cloudbeaver",
       "docker.io/diygod/rsshub",
+      "docker.io/easysoft/zentao",
       "docker.io/erikdubbelboer/phpredisadmin",
       "docker.io/freshrss/freshrss",
       "docker.io/headscale/headscale",
