@@ -26,6 +26,12 @@
   "docker": {
     "defaultRegistry": "docker.io",
     "defaultNamespace": "library",
+    "accelerator": {
+      "host": "sparkcr.cn",
+      "authPath": "/token",
+      "authService": "sparkcr",
+      "timeoutMs": 5000
+    },
     "registries": {
       "docker.io": {
         "host": "registry-1.docker.io",

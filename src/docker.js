@@ -176,6 +176,110 @@ function assertRepositoryAllowed(repository, registry, env) {
   return null;
 }
 
+function buildAcceleratorHeaders(request, token) {
+  const headers = buildDockerHeaders(request, DOCKER.accelerator.host);
+  headers.delete("Cookie");
+  headers.set("Authorization", `Bearer ${token}`);
+  return headers;
+}
+
+function getAcceleratorTokenUrl(repository) {
+  const tokenUrl = new URL(DOCKER.accelerator.authPath, `https://${DOCKER.accelerator.host}`);
+  tokenUrl.searchParams.set("service", DOCKER.accelerator.authService);
+  tokenUrl.searchParams.set("scope", `repository:${repository}:pull`);
+  return tokenUrl;
+}
+
+async function withAcceleratorTimeout(callback) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DOCKER.accelerator.timeoutMs);
+  try {
+    return await callback(controller.signal);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchAcceleratorToken(repository) {
+  return withAcceleratorTimeout(async (signal) => {
+    const response = await fetch(getAcceleratorTokenUrl(repository), {
+      headers: {
+        "Accept": "application/json",
+      },
+      redirect: "manual",
+      signal,
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      return null;
+    }
+
+    const data = await response.json();
+    return data.token || data.access_token || null;
+  });
+}
+
+function getAcceleratorUrl(url, context) {
+  const acceleratorUrl = new URL(getUpstreamSearch(url), `https://${DOCKER.accelerator.host}`);
+  acceleratorUrl.pathname = context.upstreamPath.replace("/v2/", `/v2/${context.registry.name}/`);
+  return acceleratorUrl;
+}
+
+function isRedirectResponse(response) {
+  return [ 301, 302, 303, 307, 308 ].includes(response.status);
+}
+
+function isBlobRequest(context) {
+  return context.upstreamPath.includes("/blobs/");
+}
+
+async function fetchDockerAccelerator(request, url, context) {
+  if (!DOCKER.accelerator || ![ "GET", "HEAD" ].includes(request.method.toUpperCase())) {
+    return null;
+  }
+
+  try {
+    const token = await fetchAcceleratorToken(context.repository);
+    if (!token) {
+      return null;
+    }
+
+    const acceleratorUrl = getAcceleratorUrl(url, context);
+    const response = await withAcceleratorTimeout((signal) => fetch(acceleratorUrl, {
+      method: request.method,
+      headers: buildAcceleratorHeaders(request, token),
+      redirect: "manual",
+      signal,
+    }));
+    const headers = copyProxyHeaders(response.headers);
+
+    if (response.ok) {
+      return new Response(response.body, {
+        status: response.status,
+        headers,
+      });
+    }
+
+    const location = headers.get("Location");
+    if (location && isBlobRequest(context) && isRedirectResponse(response)) {
+      const redirectUrl = new URL(location, acceleratorUrl);
+      if (redirectUrl.protocol === "https:") {
+        headers.set("Location", redirectUrl.href);
+        return new Response(response.body, {
+          status: response.status,
+          headers,
+        });
+      }
+    }
+
+    await response.body?.cancel();
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
 function buildDockerHeaders(request, host) {
   const headers = new Headers(request.headers);
   headers.set("Host", host);
@@ -388,6 +492,11 @@ export async function handleDocker(request, env) {
     if (denied) {
       return denied;
     }
+  }
+
+  const acceleratorResponse = await fetchDockerAccelerator(request, url, context);
+  if (acceleratorResponse) {
+    return acceleratorResponse;
   }
 
   const upstreamUrl = new URL(getUpstreamSearch(url), `https://${context.registry.host}`);

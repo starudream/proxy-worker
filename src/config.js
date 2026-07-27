@@ -9,6 +9,7 @@ export const GITHUB = {
 export const DOCKER = {
   defaultRegistry: settings.docker.defaultRegistry,
   defaultNamespace: settings.docker.defaultNamespace,
+  accelerator: settings.docker.accelerator,
   registries: settings.docker.registries,
   repositories: settings.docker.repositories,
 };

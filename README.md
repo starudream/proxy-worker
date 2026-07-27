@@ -100,12 +100,19 @@ Currently supported registries:
 
 Registries that require an allowlist only proxy image repositories configured in [`src/settings.json`](./src/settings.json).
 
+### Upstream Priority
+
+After the allowlist check, image pull requests use SparkCR first and fall back to the configured source registry when SparkCR is unavailable or returns an unsuccessful response.
+
+SparkCR manifests and uncached blobs are streamed through the Worker. Redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. A response that fails after streaming has started cannot be retried through the source registry.
+
 ## Configuration
 
 Main configuration lives in [`src/settings.json`](./src/settings.json):
 
 - `github.owners`: GitHub owners allowed by the proxy.
 - `github.repositories`: GitHub repositories allowed by the proxy.
+- `docker.accelerator`: Preferred Docker accelerator, authentication, and timeout settings.
 - `docker.registries`: Docker registry upstreams and allowlist policies.
 - `docker.repositories`: Docker image repositories that require allowlisting.
 

@@ -100,12 +100,19 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 
 需要白名单的 registry 只允许 [`src/settings.json`](./src/settings.json) 中配置的镜像仓库。
 
+### 上游优先级
+
+镜像拉取请求通过白名单检查后会优先使用 SparkCR；SparkCR 不可用或返回非成功响应时，自动回退到配置的源 registry。
+
+SparkCR 的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的重定向会直接返回给 Docker，因此 blob 数据不经过 Worker。响应开始流式传输后发生的错误无法再回退到源 registry。
+
 ## 配置
 
 主要配置集中在 [`src/settings.json`](./src/settings.json)：
 
 - `github.owners`: 允许代理的 GitHub owner。
 - `github.repositories`: 允许代理的 GitHub 仓库。
+- `docker.accelerator`: Docker 优先加速服务的地址、鉴权和超时配置。
 - `docker.registries`: Docker registry 上游和白名单策略。
 - `docker.repositories`: 需要白名单的 Docker 镜像仓库。
 
