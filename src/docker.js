@@ -208,14 +208,14 @@ function isAllowedTokenRealm(realmUrl, registry) {
 }
 
 function getDefaultTokenRealm(registry) {
-  if (registry.authHost) {
-    return `https://${registry.authHost}/token`;
-  }
-
-  return `https://${registry.host}/token`;
+  return `https://${registry.authHost || registry.host}${registry.authPath || "/token"}`;
 }
 
 function getRegistryService(registry) {
+  if (registry.authService) {
+    return registry.authService;
+  }
+
   if (registry.name === DOCKER_HUB_REGISTRY) {
     return "registry.docker.io";
   }

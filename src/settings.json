@@ -35,6 +35,7 @@
       },
       "gcr.io": {
         "host": "gcr.io",
+        "authPath": "/v2/token",
         "aliases": [],
         "requireAllowlist": true
       },
@@ -55,11 +56,15 @@
       },
       "docker.elastic.co": {
         "host": "docker.elastic.co",
+        "authHost": "docker-auth.elastic.co",
+        "authPath": "/auth",
+        "authService": "token-service",
         "aliases": [],
         "requireAllowlist": false
       },
       "quay.io": {
         "host": "quay.io",
+        "authPath": "/v2/auth",
         "aliases": [],
         "requireAllowlist": true
       }
@@ -119,6 +124,7 @@
       "docker.io/vaultwarden/server",
       "docker.io/victoriametrics/victoria-metrics",
       "docker.io/weishaw/sub2api",
+      "gcr.io/distroless/static",
       "ghcr.io/alice39s/kuma-mieru",
       "ghcr.io/berriai/litellm",
       "ghcr.io/docker-mailserver/docker-mailserver",
@@ -129,7 +135,8 @@
       "ghcr.io/librespeed/speedtest",
       "ghcr.io/mhsanaei/3x-ui",
       "ghcr.io/seriousm4x/upsnap",
-      "ghcr.io/xtls/xray-core"
+      "ghcr.io/xtls/xray-core",
+      "quay.io/prometheus/prometheus"
     ]
   }
 }
