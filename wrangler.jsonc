@@ -8,7 +8,10 @@
   "main": "src/index.js",
   "compatibility_date": "2026-06-13",
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "invocation_logs": false
+    }
   },
   "upload_source_maps": true,
   "compatibility_flags": [

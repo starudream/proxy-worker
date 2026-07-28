@@ -6,10 +6,10 @@ Cloudflare Workers 代理服务，提供 GitHub 文件代理和 Docker registry 
 
 ## 访问地址
 
-| 线路            | 地址                            |
-|---------------|-------------------------------|
+| 线路            | 地址                          |
+|-----------------|-------------------------------|
 | 国际 Cloudflare | <https://proxy.starudream.cn> |
-| 国内腾讯云 EO      | <https://proxy.52xckl.cn>     |
+| 国内腾讯云 EO   | <https://proxy.52xckl.cn>     |
 
 下文示例默认使用 `https://proxy.starudream.cn`，国内网络可将域名替换为 `https://proxy.52xckl.cn`。
 
@@ -44,6 +44,9 @@ curl -L https://proxy.starudream.cn/fatedier/frp/releases/download/v0.62.1/frp_0
 ```
 
 当前 GitHub 允许列表在 [`src/settings.json`](./src/settings.json) 中维护。
+
+允许的 GitHub 请求取得上游响应后，Workers Logs 会记录一条结构化的 `github proxy completed` 事件。通过 `owner`、`repository`、`resource`、`path`、`upstreamHost`、`status` 和 `redirected` 字段可以确认代理请求，日志不会记录
+URL 查询参数。
 
 ## Docker 代理
 
@@ -89,14 +92,14 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 当前支持的 registry：
 
 | Registry            | 是否需要白名单 |
-|---------------------|---------|
-| `docker.io`         | 是       |
-| `gcr.io`            | 是       |
-| `ghcr.io`           | 是       |
-| `quay.io`           | 是       |
-| `registry.k8s.io`   | 否       |
-| `mcr.microsoft.com` | 否       |
-| `docker.elastic.co` | 否       |
+|---------------------|----------------|
+| `docker.io`         | 是             |
+| `gcr.io`            | 是             |
+| `ghcr.io`           | 是             |
+| `quay.io`           | 是             |
+| `registry.k8s.io`   | 否             |
+| `mcr.microsoft.com` | 否             |
+| `docker.elastic.co` | 否             |
 
 需要白名单的 registry 只允许 [`src/settings.json`](./src/settings.json) 中配置的镜像仓库。
 
@@ -105,6 +108,12 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 镜像拉取请求通过白名单检查后会优先使用 SparkCR；SparkCR 不可用或返回非成功响应时，自动回退到配置的源 registry。
 
 SparkCR 的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的重定向会直接返回给 Docker，因此 blob 数据不经过 Worker。响应开始流式传输后发生的错误无法再回退到源 registry。
+
+Workers Logs 会为每个 manifest、blob、标签列表或 referrers 请求记录一条结构化的 `docker upstream selected` 事件。通过 `registry`、`repository`、`resource`、`upstream`、`upstreamHost` 和 `status`
+字段可以确认实际选中的上游；manifest 事件还包含 `reference`，`upstream` 的值为 `spark` 或 `origin`。源 registry 事件还包含 `fallbackReason`，可取得 SparkCR 状态码时同时包含 `acceleratorStatus`。自定义日志不记录
+token 和 registry 探测请求。
+
+自动 invocation logs 已关闭，Workers Logs 仍会保留上述 GitHub 和 Docker 结构化应用日志。
 
 ## 配置
 

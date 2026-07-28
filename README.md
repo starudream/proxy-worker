@@ -45,6 +45,8 @@ curl -L https://proxy.starudream.cn/fatedier/frp/releases/download/v0.62.1/frp_0
 
 The current GitHub allowlist is maintained in [`src/settings.json`](./src/settings.json).
 
+Workers Logs records a structured `github proxy completed` event after an allowed GitHub request receives its upstream response. The `owner`, `repository`, `resource`, `path`, `upstreamHost`, `status`, and `redirected` fields describe the proxied request without recording URL query parameters.
+
 ## Docker Proxy
 
 The Docker proxy can be used as a registry mirror. Put the image path after the proxy domain:
@@ -105,6 +107,10 @@ Registries that require an allowlist only proxy image repositories configured in
 After the allowlist check, image pull requests use SparkCR first and fall back to the configured source registry when SparkCR is unavailable or returns an unsuccessful response.
 
 SparkCR manifests and uncached blobs are streamed through the Worker. Redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. A response that fails after streaming has started cannot be retried through the source registry.
+
+Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and `status` fields identify the selected upstream. Manifest events also include `reference`; `upstream` is either `spark` or `origin`. Origin events include `fallbackReason` and, when available, `acceleratorStatus`. Token and registry probe requests are not recorded by this custom log.
+
+Automatic invocation logs are disabled; Workers Logs retains the GitHub and Docker structured application events described above.
 
 ## Configuration
 

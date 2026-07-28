@@ -42,6 +42,21 @@ function buildGitHubHeaders(request) {
   return headers;
 }
 
+function logGitHubProxy(request, matches, upstreamResponse) {
+  console.log({
+    message: "github proxy completed",
+    method: request.method,
+    owner: matches[1],
+    repository: matches[2],
+    resource: matches[3].toLowerCase(),
+    path: matches[4].split("?")[0],
+    upstream: "github",
+    upstreamHost: new URL(upstreamResponse.url).hostname,
+    status: upstreamResponse.status,
+    redirected: upstreamResponse.redirected,
+  });
+}
+
 export function isGitHubRequest(url) {
   if (url.pathname.startsWith("/github/")) {
     return true;
@@ -80,6 +95,7 @@ export async function handleGitHub(request, env) {
     body: requestBody(request),
     redirect: "follow",
   });
+  logGitHubProxy(request, matches, upstreamResponse);
 
   const headers = new Headers(upstreamResponse.headers);
   headers.set("X-Proxy-Redirect", upstreamResponse.url);

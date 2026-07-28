@@ -211,11 +211,17 @@ async function fetchAcceleratorToken(repository) {
     });
     if (!response.ok) {
       await response.body?.cancel();
-      return null;
+      return {
+        token: null,
+        status: response.status,
+      };
     }
 
     const data = await response.json();
-    return data.token || data.access_token || null;
+    return {
+      token: data.token || data.access_token || null,
+      status: response.status,
+    };
   });
 }
 
@@ -233,31 +239,92 @@ function isBlobRequest(context) {
   return context.upstreamPath.includes("/blobs/");
 }
 
+function getDockerResource(context) {
+  const resourcePath = context.upstreamPath.slice(`/v2/${context.repository}/`.length);
+  if (resourcePath.startsWith("manifests/")) {
+    return {
+      type: "manifest",
+      reference: resourcePath.slice("manifests/".length),
+    };
+  }
+
+  if (resourcePath.startsWith("blobs/")) {
+    return { type: "blob" };
+  }
+
+  if (resourcePath.startsWith("tags/list")) {
+    return { type: "tags" };
+  }
+
+  if (resourcePath.startsWith("referrers/")) {
+    return { type: "referrers" };
+  }
+
+  return { type: "unknown" };
+}
+
+function logDockerUpstream(request, context, upstream, upstreamHost, status, fallback = {}) {
+  const resource = getDockerResource(context);
+  const log = {
+    message: "docker upstream selected",
+    method: request.method,
+    registry: context.registry.name,
+    repository: context.repository,
+    resource: resource.type,
+    upstream,
+    upstreamHost,
+    status,
+    ...fallback,
+  };
+  if (resource.reference) {
+    log.reference = resource.reference;
+  }
+
+  console.log(log);
+}
+
 async function fetchDockerAccelerator(request, url, context) {
-  if (!DOCKER.accelerator || ![ "GET", "HEAD" ].includes(request.method.toUpperCase())) {
-    return null;
+  if (!DOCKER.accelerator) {
+    return {
+      response: null,
+      fallbackReason: "accelerator_disabled",
+    };
+  }
+
+  if (![ "GET", "HEAD" ].includes(request.method.toUpperCase())) {
+    return {
+      response: null,
+      fallbackReason: "method_not_supported",
+    };
   }
 
   try {
-    const token = await fetchAcceleratorToken(context.repository);
-    if (!token) {
-      return null;
+    const tokenResponse = await fetchAcceleratorToken(context.repository);
+    if (!tokenResponse.token) {
+      return {
+        response: null,
+        fallbackReason: "token_unavailable",
+        acceleratorStatus: tokenResponse.status,
+      };
     }
 
     const acceleratorUrl = getAcceleratorUrl(url, context);
     const response = await withAcceleratorTimeout((signal) => fetch(acceleratorUrl, {
       method: request.method,
-      headers: buildAcceleratorHeaders(request, token),
+      headers: buildAcceleratorHeaders(request, tokenResponse.token),
       redirect: "manual",
       signal,
     }));
     const headers = copyProxyHeaders(response.headers);
 
     if (response.ok) {
-      return new Response(response.body, {
-        status: response.status,
-        headers,
-      });
+      logDockerUpstream(request, context, "spark", DOCKER.accelerator.host, response.status);
+      return {
+        response: new Response(response.body, {
+          status: response.status,
+          headers,
+        }),
+      };
     }
 
     const location = headers.get("Location");
@@ -265,19 +332,28 @@ async function fetchDockerAccelerator(request, url, context) {
       const redirectUrl = new URL(location, acceleratorUrl);
       if (redirectUrl.protocol === "https:") {
         headers.set("Location", redirectUrl.href);
-        return new Response(response.body, {
-          status: response.status,
-          headers,
-        });
+        logDockerUpstream(request, context, "spark", DOCKER.accelerator.host, response.status);
+        return {
+          response: new Response(response.body, {
+            status: response.status,
+            headers,
+          }),
+        };
       }
     }
 
     await response.body?.cancel();
-  } catch {
-    return null;
+    return {
+      response: null,
+      fallbackReason: "accelerator_response_not_ok",
+      acceleratorStatus: response.status,
+    };
+  } catch (error) {
+    return {
+      response: null,
+      fallbackReason: error?.name === "AbortError" ? "accelerator_timeout" : "accelerator_request_error",
+    };
   }
-
-  return null;
 }
 
 function buildDockerHeaders(request, host) {
@@ -494,9 +570,9 @@ export async function handleDocker(request, env) {
     }
   }
 
-  const acceleratorResponse = await fetchDockerAccelerator(request, url, context);
-  if (acceleratorResponse) {
-    return acceleratorResponse;
+  const acceleratorResult = await fetchDockerAccelerator(request, url, context);
+  if (acceleratorResult.response) {
+    return acceleratorResult.response;
   }
 
   const upstreamUrl = new URL(getUpstreamSearch(url), `https://${context.registry.host}`);
@@ -508,6 +584,13 @@ export async function handleDocker(request, env) {
     body: requestBody(request),
     redirect: "manual",
   });
+  const fallback = {
+    fallbackReason: acceleratorResult.fallbackReason,
+  };
+  if (acceleratorResult.acceleratorStatus !== undefined) {
+    fallback.acceleratorStatus = acceleratorResult.acceleratorStatus;
+  }
+  logDockerUpstream(request, context, "origin", context.registry.host, upstreamResponse.status, fallback);
 
   const headers = copyProxyHeaders(upstreamResponse.headers);
   const authenticate = headers.get("Www-Authenticate");
