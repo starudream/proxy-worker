@@ -81,6 +81,7 @@
       "docker.io/grafana/*",
       "docker.io/library/*",
       "docker.io/moby/*",
+      "docker.io/openresty/*",
       "docker.io/starudream/*",
       "docker.io/ubuntu/*",
       "docker.io/victoriametrics/*",
