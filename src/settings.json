@@ -94,6 +94,7 @@
       "docker.io/calciumion/new-api",
       "docker.io/casbin/casdoor",
       "docker.io/certimate/certimate",
+      "docker.io/chatwoot/chatwoot",
       "docker.io/clickhouse/clickhouse-server",
       "docker.io/dbeaver/cloudbeaver",
       "docker.io/diygod/rsshub",
