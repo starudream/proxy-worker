@@ -119,6 +119,7 @@
       "docker.io/openproject/openproject",
       "docker.io/openvpn/openvpn-as",
       "docker.io/paradedb/paradedb",
+      "docker.io/pgvector/pgvector",
       "docker.io/pihole/pihole",
       "docker.io/prom/alertmanager",
       "docker.io/prom/node-exporter",
