@@ -20,6 +20,7 @@
       "MetaCubeX/meta-rules-dat",
       "MetaCubeX/mihomo",
       "mtrojnar/osslsigncode",
+      "pgbackrest/pgbackrest",
       "TG-Twilight/AWAvenue-Ads-Rule"
     ]
   },
