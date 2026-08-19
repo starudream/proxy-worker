@@ -12,6 +12,7 @@
     "repositories": [
       "clash-verge-rev/clash-verge-rev",
       "daijro/camoufox",
+      "dimitri/pgloader",
       "fatedier/frp",
       "GmSSL/SoftSDF",
       "guanzhi/GmSSL",
