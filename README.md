@@ -106,7 +106,7 @@ Registries that require an allowlist only proxy image repositories configured in
 
 After the allowlist check, image pull requests try applicable accelerators in this order: DaoCloud, Docker Proxy, SparkCR, 1ms, and Xuanyuan. Accelerators that do not serve the requested registry are skipped; Docker Proxy and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves every configured registry. If every applicable accelerator fails, the request falls back to the configured source registry.
 
-Accelerator manifests and uncached blobs are streamed through the Worker. Redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. A response that fails after streaming has started cannot be retried through another accelerator or the source registry.
+Accelerator manifests and uncached blobs are streamed through the Worker. HTTPS redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. If the redirect target is `docker.com` or one of its subdomains, the current accelerator is treated as failed and the next one is tried, preventing the Docker client from connecting directly to an address that is unreachable from China. A response that fails after streaming has started cannot be retried through another accelerator or the source registry.
 
 Set the `XUANYUAN_USERNAME` and `XUANYUAN_PASSWORD` Worker secrets before deployment. If either secret is unavailable, Docker Hub requests skip the accelerator and use the source registry.
 

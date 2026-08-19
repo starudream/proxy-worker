@@ -380,6 +380,15 @@ async function fetchDockerAccelerator(request, url, context, env, accelerator) {
     if (location && isBlobRequest(context) && isRedirectResponse(response)) {
       const redirectUrl = new URL(location, acceleratorUrl);
       if (redirectUrl.protocol === "https:") {
+        if (redirectUrl.hostname === "docker.com" || redirectUrl.hostname.endsWith(".docker.com")) {
+          await response.body?.cancel();
+          return {
+            response: null,
+            fallbackReason: "accelerator_redirect_host_unreachable",
+            acceleratorStatus: response.status,
+          };
+        }
+
         headers.set("Location", redirectUrl.href);
         logDockerUpstream(request, context, accelerator.name, accelerator.host, response.status);
         return {
