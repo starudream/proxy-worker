@@ -104,11 +104,13 @@ Registries that require an allowlist only proxy image repositories configured in
 
 ### Upstream Priority
 
-After the allowlist check, image pull requests use SparkCR first and fall back to the configured source registry when SparkCR is unavailable or returns an unsuccessful response.
+After the allowlist check, image pull requests try applicable accelerators in this order: DaoCloud, Docker Proxy, SparkCR, 1ms, and Xuanyuan. Accelerators that do not serve the requested registry are skipped; Docker Proxy and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves every configured registry. If every applicable accelerator fails, the request falls back to the configured source registry.
 
-SparkCR manifests and uncached blobs are streamed through the Worker. Redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. A response that fails after streaming has started cannot be retried through the source registry.
+Accelerator manifests and uncached blobs are streamed through the Worker. Redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. A response that fails after streaming has started cannot be retried through another accelerator or the source registry.
 
-Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and `status` fields identify the selected upstream. Manifest events also include `reference`; `upstream` is either `spark` or `origin`. Origin events include `fallbackReason` and, when available, `acceleratorStatus`. Token and registry probe requests are not recorded by this custom log.
+Set the `XUANYUAN_USERNAME` and `XUANYUAN_PASSWORD` Worker secrets before deployment. If either secret is unavailable, Docker Hub requests skip the accelerator and use the source registry.
+
+Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and `status` fields identify the selected upstream. Manifest events also include `reference`. Origin events include `fallbackReason` and an `acceleratorAttempts` list when accelerators were attempted. Token and registry probe requests are not recorded by this custom log.
 
 Automatic invocation logs are disabled; Workers Logs retains the GitHub and Docker structured application events described above.
 
@@ -118,7 +120,7 @@ Main configuration lives in [`src/settings.json`](./src/settings.json):
 
 - `github.owners`: GitHub owners allowed by the proxy.
 - `github.repositories`: GitHub repositories allowed by the proxy.
-- `docker.accelerator`: Preferred Docker accelerator, authentication, and timeout settings.
+- `docker.accelerators`: Ordered Docker accelerators, enablement, registry scope, authentication, and timeout settings.
 - `docker.registries`: Docker registry upstreams and allowlist policies.
 - `docker.repositories`: Docker image repositories that require allowlisting.
 

@@ -105,12 +105,14 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 
 ### 上游优先级
 
-镜像拉取请求通过白名单检查后会优先使用 SparkCR；SparkCR 不可用或返回非成功响应时，自动回退到配置的源 registry。
+镜像拉取请求通过白名单检查后，按 DaoCloud、Docker Proxy、SparkCR、1ms、轩辕的顺序尝试适用于当前 registry 的加速服务。不支持当前 registry 的服务会被跳过：本配置中 Docker Proxy 和轩辕仅用于 Docker Hub，DaoCloud 和 1ms 同时用于 Docker Hub 与 GHCR，SparkCR 用于全部已配置 registry。所有适用的加速服务都失败后，才回退到配置的源 registry。
 
-SparkCR 的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的重定向会直接返回给 Docker，因此 blob 数据不经过 Worker。响应开始流式传输后发生的错误无法再回退到源 registry。
+加速服务的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的重定向会直接返回给 Docker，因此 blob 数据不经过 Worker。响应开始流式传输后发生的错误无法再回退到其他加速服务或源 registry。
+
+部署前需设置 `XUANYUAN_USERNAME` 和 `XUANYUAN_PASSWORD` Worker Secret。任一 Secret 缺失时，Docker Hub 请求会跳过加速并使用源 registry。
 
 Workers Logs 会为每个 manifest、blob、标签列表或 referrers 请求记录一条结构化的 `docker upstream selected` 事件。通过 `registry`、`repository`、`resource`、`upstream`、`upstreamHost` 和 `status`
-字段可以确认实际选中的上游；manifest 事件还包含 `reference`，`upstream` 的值为 `spark` 或 `origin`。源 registry 事件还包含 `fallbackReason`，可取得 SparkCR 状态码时同时包含 `acceleratorStatus`。自定义日志不记录
+字段可以确认实际选中的上游；manifest 事件还包含 `reference`。源 registry 事件还包含 `fallbackReason`，尝试过加速服务时同时包含 `acceleratorAttempts` 列表。自定义日志不记录
 token 和 registry 探测请求。
 
 自动 invocation logs 已关闭，Workers Logs 仍会保留上述 GitHub 和 Docker 结构化应用日志。
@@ -121,7 +123,7 @@ token 和 registry 探测请求。
 
 - `github.owners`: 允许代理的 GitHub owner。
 - `github.repositories`: 允许代理的 GitHub 仓库。
-- `docker.accelerator`: Docker 优先加速服务的地址、鉴权和超时配置。
+- `docker.accelerators`: Docker 加速服务的顺序、启用状态、registry 范围、鉴权和超时配置。
 - `docker.registries`: Docker registry 上游和白名单策略。
 - `docker.repositories`: 需要白名单的 Docker 镜像仓库。
 

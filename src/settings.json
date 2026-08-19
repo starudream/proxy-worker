@@ -27,12 +27,72 @@
   "docker": {
     "defaultRegistry": "docker.io",
     "defaultNamespace": "library",
-    "accelerator": {
-      "host": "sparkcr.cn",
-      "authPath": "/token",
-      "authService": "sparkcr",
-      "timeoutMs": 5000
-    },
+    "accelerators": [
+      {
+        "name": "daocloud",
+        "enabled": true,
+        "hosts": {
+          "docker.io": "docker.m.daocloud.io",
+          "ghcr.io": "ghcr.m.daocloud.io"
+        },
+        "authPath": "/auth/token",
+        "includeRegistryInPath": false,
+        "timeoutMs": 5000
+      },
+      {
+        "name": "dockerproxy",
+        "enabled": true,
+        "host": "dockerproxy.net",
+        "includeRegistryInPath": false,
+        "registries": [
+          "docker.io"
+        ],
+        "timeoutMs": 5000
+      },
+      {
+        "name": "spark",
+        "enabled": true,
+        "host": "sparkcr.cn",
+        "authPath": "/token",
+        "authService": "sparkcr",
+        "includeRegistryInPath": true,
+        "registries": [
+          "docker.io",
+          "docker.elastic.co",
+          "gcr.io",
+          "ghcr.io",
+          "mcr.microsoft.com",
+          "quay.io",
+          "registry.k8s.io"
+        ],
+        "timeoutMs": 5000
+      },
+      {
+        "name": "1ms",
+        "enabled": true,
+        "hosts": {
+          "docker.io": "docker.1ms.run",
+          "ghcr.io": "ghcr.1ms.run"
+        },
+        "authPath": "/openapi/v1/auth/token",
+        "includeRegistryInPath": false,
+        "timeoutMs": 5000
+      },
+      {
+        "name": "xuanyuan",
+        "enabled": true,
+        "host": "docker.xuanyuan.run",
+        "authPath": "/auth/token",
+        "authService": "docker.xuanyuan.run",
+        "usernameEnv": "XUANYUAN_USERNAME",
+        "passwordEnv": "XUANYUAN_PASSWORD",
+        "includeRegistryInPath": false,
+        "registries": [
+          "docker.io"
+        ],
+        "timeoutMs": 5000
+      }
+    ],
     "registries": {
       "docker.io": {
         "host": "registry-1.docker.io",
