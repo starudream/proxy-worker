@@ -41,7 +41,7 @@
       },
       {
         "name": "dockerproxy",
-        "enabled": true,
+        "enabled": false,
         "host": "dockerproxy.net",
         "includeRegistryInPath": false,
         "registries": [
@@ -80,7 +80,7 @@
       },
       {
         "name": "xuanyuan",
-        "enabled": true,
+        "enabled": false,
         "host": "docker.xuanyuan.run",
         "authPath": "/auth/token",
         "authService": "docker.xuanyuan.run",
