@@ -70,7 +70,7 @@
       },
       {
         "name": "1ms",
-        "enabled": true,
+        "enabled": false,
         "hosts": {
           "docker.io": "docker.1ms.run",
           "ghcr.io": "ghcr.1ms.run"
