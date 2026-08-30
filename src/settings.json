@@ -31,7 +31,7 @@
     "accelerators": [
       {
         "name": "daocloud",
-        "enabled": true,
+        "enabled": false,
         "hosts": {
           "docker.io": "docker.m.daocloud.io",
           "ghcr.io": "ghcr.m.daocloud.io"
