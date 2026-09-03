@@ -163,6 +163,7 @@
       "docker.io/easysoft/zentao",
       "docker.io/erikdubbelboer/phpredisadmin",
       "docker.io/freshrss/freshrss",
+      "docker.io/gtstef/filebrowser",
       "docker.io/headscale/headscale",
       "docker.io/hslr/sun-panel",
       "docker.io/langfuse/langfuse",
