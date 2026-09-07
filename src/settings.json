@@ -150,6 +150,7 @@
       "docker.io/ubuntu/*",
       "docker.io/victoriametrics/*",
       "ghcr.io/mailu/*",
+      "ghcr.io/ssltrus-official/*",
       "ghcr.io/starudream/*",
       "docker.io/adguard/adguardhome",
       "docker.io/astral/uv",
@@ -211,7 +212,6 @@
       "ghcr.io/librespeed/speedtest",
       "ghcr.io/mhsanaei/3x-ui",
       "ghcr.io/seriousm4x/upsnap",
-      "ghcr.io/ssltrus-official/home-assistant",
       "ghcr.io/xtls/xray-core",
       "quay.io/prometheus/prometheus"
     ]
