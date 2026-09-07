@@ -162,6 +162,7 @@
       "docker.io/diygod/rsshub",
       "docker.io/easysoft/zentao",
       "docker.io/erikdubbelboer/phpredisadmin",
+      "docker.io/fluent/fluent-bit",
       "docker.io/freshrss/freshrss",
       "docker.io/gtstef/filebrowser",
       "docker.io/headscale/headscale",
