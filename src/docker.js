@@ -1,5 +1,5 @@
 import { DOCKER } from "./config";
-import { commaList, copyProxyHeaders, corsPreflight, isAllowed, requestBody, textResponse } from "./http";
+import { commaList, copyProxyHeaders, corsPreflight, isAllowed, requestBody, requestLogFields, textResponse } from "./http";
 
 const DOCKER_HUB_REGISTRY = "docker.io";
 
@@ -314,6 +314,7 @@ function logDockerUpstream(request, context, upstream, upstreamHost, status, fal
     upstream,
     upstreamHost,
     status,
+    ...requestLogFields(request),
     ...fallback,
   };
   if (resource.reference) {

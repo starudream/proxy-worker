@@ -119,6 +119,9 @@ Workers Logs 会为每个 manifest、blob、标签列表或 referrers 请求记�
 字段可以确认实际选中的上游；manifest 事件还包含 `reference`。源 registry 事件还包含 `fallbackReason`，尝试过加速服务时同时包含 `acceleratorAttempts` 列表。自定义日志不记录
 token 和 registry 探测请求。
 
+GitHub 和 Docker 结构化事件还会在字段存在时记录长度受限的 `requestIp`、`userAgent`、`cfRay`、`country`、`accept` 和 `range`；每个请求头字段最多记录 512 个字符，不记录
+`Authorization`、`Cookie` 等敏感请求头。
+
 自动 invocation logs 已关闭，Workers Logs 仍会保留上述 GitHub 和 Docker 结构化应用日志。
 
 ## 配置

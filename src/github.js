@@ -1,5 +1,5 @@
 import { GITHUB } from "./config";
-import { commaList, corsPreflight, isAllowed, requestBody, textResponse } from "./http";
+import { commaList, corsPreflight, isAllowed, requestBody, requestLogFields, textResponse } from "./http";
 
 function normalizeGitHubTarget(target) {
   if (/^https:\/github\.com\//i.test(target)) {
@@ -54,6 +54,7 @@ function logGitHubProxy(request, matches, upstreamResponse) {
     upstreamHost: new URL(upstreamResponse.url).hostname,
     status: upstreamResponse.status,
     redirected: upstreamResponse.redirected,
+    ...requestLogFields(request),
   });
 }
 

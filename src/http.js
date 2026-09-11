@@ -43,6 +43,22 @@ export function copyProxyHeaders(headers) {
   return nextHeaders;
 }
 
+function boundedHeader(request, name, maxLength = 512) {
+  const value = request.headers.get(name);
+  return value ? value.slice(0, maxLength) : undefined;
+}
+
+export function requestLogFields(request) {
+  return {
+    requestIp: boundedHeader(request, "CF-Connecting-IP"),
+    userAgent: boundedHeader(request, "User-Agent"),
+    cfRay: boundedHeader(request, "CF-Ray"),
+    country: boundedHeader(request, "CF-IPCountry"),
+    accept: boundedHeader(request, "Accept"),
+    range: boundedHeader(request, "Range"),
+  };
+}
+
 export function commaList(value) {
   if (!value) {
     return [];

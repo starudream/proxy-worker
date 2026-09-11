@@ -121,6 +121,9 @@ Workers Logs records a structured `docker upstream selected` event for each mani
 `status` fields identify the selected upstream. Manifest events also include `reference`. Origin events include `fallbackReason` and an `acceleratorAttempts` list when accelerators were attempted.
 Token and registry probe requests are not recorded by this custom log.
 
+The GitHub and Docker structured events also include the bounded request fields `requestIp`, `userAgent`, `cfRay`, `country`, `accept`, and `range` when available. Header values are limited to 512
+characters. Sensitive headers such as `Authorization` and `Cookie` are not recorded.
+
 Automatic invocation logs are disabled; Workers Logs retains the GitHub and Docker structured application events described above.
 
 ## Configuration
