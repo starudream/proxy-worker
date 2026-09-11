@@ -2,16 +2,18 @@
 
 [English](./README.md) | [简体中文](./README.zh_CN.md)
 
-A Cloudflare Workers proxy service for GitHub file downloads and Docker registry mirror traffic.
+An edge proxy service for GitHub file downloads and Docker registry mirror traffic.
 
 ## Endpoints
 
-| Route                               | URL                           |
-|-------------------------------------|-------------------------------|
-| Global Cloudflare                   | <https://proxy.starudream.cn> |
-| Tencent Cloud EO for mainland China | <https://proxy.52xckl.cn>     |
+| Platform                         | URL                               |
+|----------------------------------|-----------------------------------|
+| Cloudflare Worker                | <https://proxy.starudream.cn>     |
+| Alibaba Cloud ESA                | <https://proxy.52xckl.cn>         |
+| Alibaba Cloud ESA (explicit)     | <https://proxy-esa.52xckl.cn>     |
+| Tencent Cloud TEO                | <https://proxy-teo.52xckl.cn>     |
 
-The examples below use `https://proxy.starudream.cn` by default. For mainland China networks, replace the domain with `https://proxy.52xckl.cn`.
+The examples below use `https://proxy.starudream.cn` by default. For mainland China networks, use the Alibaba Cloud ESA endpoint `https://proxy.52xckl.cn`, or explicitly select ESA or TEO with the corresponding endpoint above.
 
 ## GitHub Proxy
 
@@ -125,6 +127,24 @@ The GitHub and Docker structured events also include the bounded request fields 
 characters. Sensitive headers such as `Authorization` and `Cookie` are not recorded.
 
 Automatic invocation logs are disabled; Workers Logs retains the GitHub and Docker structured application events described above.
+
+## ESA/TEO Bandwidth Check
+
+Run the bandwidth diagnostic script from a client on the network being evaluated:
+
+```bash
+bash scripts/benchmark-edge-bandwidth.sh
+```
+
+The script requests the first 20 MiB of the pinned `k3s-io/k3s` release asset `k3s-airgap-images-amd64.tar.zst` through the explicit ESA and TEO endpoints. Each endpoint is tested three times in alternating order. A single continuous HTTP Range response is measured in 1 MiB windows so that a sustained speed change after the first few MiB remains visible. It does not split the sample into independent HTTP requests.
+
+The sample size, window size, and number of rounds can be adjusted without editing the script:
+
+```bash
+SAMPLE_MIB=40 CHUNK_MIB=2 RUNS=5 bash scripts/benchmark-edge-bandwidth.sh
+```
+
+The reported throttle boundary is a heuristic signal rather than proof of a provider-side limit. Repeat the test from the same client and network at different times, and compare the final response status, `Content-Range`, per-window rates, and repeated results. CDN cache state, the GitHub origin, ISP routing, and the local network can all affect throughput.
 
 ## Configuration
 

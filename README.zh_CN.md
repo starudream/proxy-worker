@@ -2,16 +2,18 @@
 
 [English](./README.md) | [简体中文](./README.zh_CN.md)
 
-Cloudflare Workers 代理服务，提供 GitHub 文件代理和 Docker registry 镜像代理。
+边缘代理服务，提供 GitHub 文件代理和 Docker registry 镜像代理。
 
 ## 访问地址
 
-| 线路            | 地址                          |
-|-----------------|-------------------------------|
-| 国际 Cloudflare | <https://proxy.starudream.cn> |
-| 国内腾讯云 EO   | <https://proxy.52xckl.cn>     |
+| 平台                    | 地址                              |
+|-------------------------|-----------------------------------|
+| Cloudflare Worker       | <https://proxy.starudream.cn>     |
+| 阿里云 ESA              | <https://proxy.52xckl.cn>         |
+| 阿里云 ESA（显式线路）  | <https://proxy-esa.52xckl.cn>     |
+| 腾讯云 TEO              | <https://proxy-teo.52xckl.cn>     |
 
-下文示例默认使用 `https://proxy.starudream.cn`，国内网络可将域名替换为 `https://proxy.52xckl.cn`。
+下文示例默认使用 `https://proxy.starudream.cn`。国内网络可使用阿里云 ESA 入口 `https://proxy.52xckl.cn`，也可以通过上表的显式入口手动选择 ESA 或 TEO。
 
 ## GitHub 代理
 
@@ -123,6 +125,24 @@ GitHub 和 Docker 结构化事件还会在字段存在时记录长度受限的 `
 `Authorization`、`Cookie` 等敏感请求头。
 
 自动 invocation logs 已关闭，Workers Logs 仍会保留上述 GitHub 和 Docker 结构化应用日志。
+
+## ESA/TEO 带宽检测
+
+在需要评估的客户端网络上运行带宽诊断脚本：
+
+```bash
+bash scripts/benchmark-edge-bandwidth.sh
+```
+
+脚本通过 ESA 和 TEO 显式入口读取固定版本 `k3s-io/k3s` Release 资产 `k3s-airgap-images-amd64.tar.zst` 的前 20 MiB。默认交替测试两个入口各 3 轮，并在同一个连续 HTTP Range 响应内按 1 MiB 窗口统计速度，以便观察前若干 MiB 后是否出现持续降速；不会把样本拆成多个相互独立的 HTTP 请求。
+
+可以通过环境变量调整采样大小、统计窗口和轮数：
+
+```bash
+SAMPLE_MIB=40 CHUNK_MIB=2 RUNS=5 bash scripts/benchmark-edge-bandwidth.sh
+```
+
+脚本报告的疑似限速边界只是诊断信号，不能单独证明云厂商实施了带宽限制。应在相同客户端和网络下分时段重复测试，并结合最终响应状态、`Content-Range`、各窗口速度和多轮结果判断；CDN 缓存状态、GitHub 源站、运营商路由及本地网络均可能影响结果。
 
 ## 配置
 
