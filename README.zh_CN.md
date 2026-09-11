@@ -84,6 +84,7 @@ docker.io/library/hello-world:latest
 
 ```bash
 docker pull proxy.starudream.cn/ghcr.io/home-assistant/home-assistant:latest
+docker pull proxy.starudream.cn/registry.gitlab.com/gitlab-org/gitlab-runner:latest
 docker pull proxy.starudream.cn/registry.k8s.io/pause:3.10
 docker pull proxy.starudream.cn/mcr.microsoft.com/dotnet/runtime:9.0
 docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
@@ -91,23 +92,26 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 
 当前支持的 registry：
 
-| Registry            | 是否需要白名单 |
-|---------------------|----------------|
-| `docker.io`         | 是             |
-| `gcr.io`            | 是             |
-| `ghcr.io`           | 是             |
-| `quay.io`           | 是             |
-| `registry.k8s.io`   | 否             |
-| `mcr.microsoft.com` | 否             |
-| `docker.elastic.co` | 否             |
+| Registry              | 是否需要白名单 |
+|-----------------------|----------------|
+| `docker.io`           | 是             |
+| `gcr.io`              | 是             |
+| `ghcr.io`             | 是             |
+| `quay.io`             | 是             |
+| `registry.gitlab.com` | 是             |
+| `registry.k8s.io`     | 否             |
+| `mcr.microsoft.com`   | 否             |
+| `docker.elastic.co`   | 否             |
 
 需要白名单的 registry 只允许 [`src/settings.json`](./src/settings.json) 中配置的镜像仓库。
 
 ### 上游优先级
 
-镜像拉取请求通过白名单检查后，按 DaoCloud、Docker Proxy、SparkCR、1ms、轩辕的顺序尝试适用于当前 registry 的加速服务。不支持当前 registry 的服务会被跳过：本配置中 Docker Proxy 和轩辕仅用于 Docker Hub，DaoCloud 和 1ms 同时用于 Docker Hub 与 GHCR，SparkCR 用于全部已配置 registry。所有适用的加速服务都失败后，才回退到配置的源 registry。
+镜像拉取请求通过白名单检查后，按 DaoCloud、Docker Proxy、SparkCR、1ms、轩辕的顺序尝试适用于当前 registry 的加速服务。不支持当前 registry 的服务会被跳过：本配置中 Docker Proxy 和轩辕仅用于 Docker Hub，DaoCloud
+和 1ms 同时用于 Docker Hub 与 GHCR，SparkCR 用于其明确配置的 registry；GitLab Container Registry 当前直接使用源 registry。所有适用的加速服务都失败后，才回退到配置的源 registry。
 
-加速服务的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的 HTTPS 重定向会直接返回给 Docker，使 blob 数据不经过 Worker。重定向目标为 `docker.com` 或其子域名时，当前加速服务会被视为失败并继续尝试下一个，避免 Docker 客户端直连国内不可访问的地址。响应开始流式传输后发生的错误无法再回退到其他加速服务或源 registry。
+加速服务的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的 HTTPS 重定向会直接返回给 Docker，使 blob 数据不经过 Worker。重定向目标为 `docker.com` 或其子域名时，当前加速服务会被视为失败并继续尝试下一个，避免
+Docker 客户端直连国内不可访问的地址。响应开始流式传输后发生的错误无法再回退到其他加速服务或源 registry。
 
 部署前需设置 `XUANYUAN_USERNAME` 和 `XUANYUAN_PASSWORD` Worker Secret。任一 Secret 缺失时，Docker Hub 请求会跳过加速并使用源 registry。
 

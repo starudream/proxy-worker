@@ -114,6 +114,14 @@
         "aliases": [],
         "requireAllowlist": true
       },
+      "registry.gitlab.com": {
+        "host": "registry.gitlab.com",
+        "authHost": "gitlab.com",
+        "authPath": "/jwt/auth",
+        "authService": "container_registry",
+        "aliases": [],
+        "requireAllowlist": true
+      },
       "registry.k8s.io": {
         "host": "registry.k8s.io",
         "aliases": [],
@@ -152,6 +160,8 @@
       "ghcr.io/mailu/*",
       "ghcr.io/ssltrus-official/*",
       "ghcr.io/starudream/*",
+      "registry.gitlab.com/gitlab-org/*",
+      "registry.gitlab.com/security-products/*",
       "docker.io/adguard/adguardhome",
       "docker.io/astral/uv",
       "docker.io/binwiederhier/ntfy",

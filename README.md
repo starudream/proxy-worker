@@ -45,7 +45,8 @@ curl -L https://proxy.starudream.cn/fatedier/frp/releases/download/v0.62.1/frp_0
 
 The current GitHub allowlist is maintained in [`src/settings.json`](./src/settings.json).
 
-Workers Logs records a structured `github proxy completed` event after an allowed GitHub request receives its upstream response. The `owner`, `repository`, `resource`, `path`, `upstreamHost`, `status`, and `redirected` fields describe the proxied request without recording URL query parameters.
+Workers Logs records a structured `github proxy completed` event after an allowed GitHub request receives its upstream response. The `owner`, `repository`, `resource`, `path`, `upstreamHost`,
+`status`, and `redirected` fields describe the proxied request without recording URL query parameters.
 
 ## Docker Proxy
 
@@ -83,6 +84,7 @@ Put the registry explicitly at the beginning of the image path:
 
 ```bash
 docker pull proxy.starudream.cn/ghcr.io/home-assistant/home-assistant:latest
+docker pull proxy.starudream.cn/registry.gitlab.com/gitlab-org/gitlab-runner:latest
 docker pull proxy.starudream.cn/registry.k8s.io/pause:3.10
 docker pull proxy.starudream.cn/mcr.microsoft.com/dotnet/runtime:9.0
 docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
@@ -90,27 +92,34 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 
 Currently supported registries:
 
-| Registry            | Allowlist Required |
-|---------------------|--------------------|
-| `docker.io`         | Yes                |
-| `gcr.io`            | Yes                |
-| `ghcr.io`           | Yes                |
-| `quay.io`           | Yes                |
-| `registry.k8s.io`   | No                 |
-| `mcr.microsoft.com` | No                 |
-| `docker.elastic.co` | No                 |
+| Registry              | Allowlist Required |
+|-----------------------|--------------------|
+| `docker.io`           | Yes                |
+| `gcr.io`              | Yes                |
+| `ghcr.io`             | Yes                |
+| `quay.io`             | Yes                |
+| `registry.gitlab.com` | Yes                |
+| `registry.k8s.io`     | No                 |
+| `mcr.microsoft.com`   | No                 |
+| `docker.elastic.co`   | No                 |
 
 Registries that require an allowlist only proxy image repositories configured in [`src/settings.json`](./src/settings.json).
 
 ### Upstream Priority
 
-After the allowlist check, image pull requests try applicable accelerators in this order: DaoCloud, Docker Proxy, SparkCR, 1ms, and Xuanyuan. Accelerators that do not serve the requested registry are skipped; Docker Proxy and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves every configured registry. If every applicable accelerator fails, the request falls back to the configured source registry.
+After the allowlist check, image pull requests try applicable accelerators in this order: DaoCloud, Docker Proxy, SparkCR, 1ms, and Xuanyuan. Accelerators that do not serve the requested registry are
+skipped; Docker Proxy and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves its configured registries. GitLab Container Registry currently uses its
+source registry directly. If every applicable accelerator fails, the request falls back to the configured source registry.
 
-Accelerator manifests and uncached blobs are streamed through the Worker. HTTPS redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. If the redirect target is `docker.com` or one of its subdomains, the current accelerator is treated as failed and the next one is tried, preventing the Docker client from connecting directly to an address that is unreachable from China. A response that fails after streaming has started cannot be retried through another accelerator or the source registry.
+Accelerator manifests and uncached blobs are streamed through the Worker. HTTPS redirects for cached blobs are returned directly to Docker, so the blob data does not pass through the Worker. If the
+redirect target is `docker.com` or one of its subdomains, the current accelerator is treated as failed and the next one is tried, preventing the Docker client from connecting directly to an address
+that is unreachable from China. A response that fails after streaming has started cannot be retried through another accelerator or the source registry.
 
 Set the `XUANYUAN_USERNAME` and `XUANYUAN_PASSWORD` Worker secrets before deployment. If either secret is unavailable, Docker Hub requests skip the accelerator and use the source registry.
 
-Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and `status` fields identify the selected upstream. Manifest events also include `reference`. Origin events include `fallbackReason` and an `acceleratorAttempts` list when accelerators were attempted. Token and registry probe requests are not recorded by this custom log.
+Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and
+`status` fields identify the selected upstream. Manifest events also include `reference`. Origin events include `fallbackReason` and an `acceleratorAttempts` list when accelerators were attempted.
+Token and registry probe requests are not recorded by this custom log.
 
 Automatic invocation logs are disabled; Workers Logs retains the GitHub and Docker structured application events described above.
 

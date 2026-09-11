@@ -88,6 +88,7 @@ docker pull proxy.starudream.cn/hello-world:latest</code></pre>
 
       <h3>Other Registries</h3>
       <pre><code>docker pull proxy.starudream.cn/ghcr.io/home-assistant/home-assistant:latest
+docker pull proxy.starudream.cn/registry.gitlab.com/gitlab-org/gitlab-runner:latest
 docker pull proxy.starudream.cn/registry.k8s.io/pause:3.10
 docker pull proxy.starudream.cn/mcr.microsoft.com/dotnet/runtime:9.0
 docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest</code></pre>
@@ -100,6 +101,7 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest</code></pre
             <li><code>gcr.io</code></li>
             <li><code>ghcr.io</code></li>
             <li><code>quay.io</code></li>
+            <li><code>registry.gitlab.com</code></li>
           </ul>
         </div>
         <div>
