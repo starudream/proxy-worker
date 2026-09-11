@@ -109,19 +109,17 @@ Registries that require an allowlist only proxy image repositories configured in
 
 ### Upstream Priority
 
-After the allowlist check, image pull requests try applicable accelerators in this order: SparkCR, DaoCloud, Docker Proxy, 1ms, and Xuanyuan. Accelerators that do not serve the requested registry are
-skipped; Docker Proxy and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves its configured registries. GitLab Container Registry currently uses its
-source registry directly. If every applicable accelerator fails, the request falls back to the configured source registry.
+After the allowlist check, image pull requests try all applicable accelerators in a new random order for each request. Accelerators that do not serve the requested registry are skipped; Docker Proxy
+and Xuanyuan serve Docker Hub only, DaoCloud and 1ms serve both Docker Hub and GHCR, and SparkCR serves its configured registries. GitLab Container Registry currently uses its source registry directly.
+If every applicable accelerator fails, the request falls back to the configured source registry.
 
-For each accelerator, GET blob requests follow up to five HTTPS redirects inside the proxy and sample the response body before it is returned to Docker. The accelerator passes when at least 1 MiB is
-received within one second. If it remains below that threshold, the response is canceled and the next accelerator is tried. A completed or declared response smaller than 1 MiB is accepted without
-requiring it to reach the threshold. Accepted responses replay the sampled bytes and then continue streaming; failures after streaming has started cannot be retried through another accelerator or
-the source registry.
+GET blob requests follow up to five HTTPS redirects inside the proxy. Once an accelerator returns a successful response, its body is streamed directly to Docker; failures after streaming has started
+cannot be retried through another accelerator or the source registry.
 
 Xuanyuan requires the `XUANYUAN_USERNAME` and `XUANYUAN_PASSWORD` runtime variables. A deployment that does not provide both values skips Xuanyuan and continues to the source registry.
 
 Workers Logs records a structured `docker upstream selected` event for each manifest, blob, tag list, or referrers request. The `registry`, `repository`, `resource`, `upstream`, `upstreamHost`, and
-`status` fields identify the selected upstream. Manifest events also include `reference`. Blob events include bandwidth sampling and redirect fields when applicable. A selected accelerator or origin
+`status` fields identify the selected upstream. Manifest events also include `reference`. Blob events include redirect fields when applicable. A selected accelerator or origin
 includes an `acceleratorAttempts` list when earlier accelerators failed; origin events also include `fallbackReason`. Token and registry probe requests are not recorded by this custom log.
 
 The GitHub and Docker structured events also include the bounded request fields `requestIp`, `userAgent`, `cfRay`, `country`, `accept`, and `range` when available. Header values are limited to 512
@@ -153,8 +151,7 @@ Main configuration lives in [`src/settings.json`](./src/settings.json):
 
 - `github.owners`: GitHub owners allowed by the proxy.
 - `github.repositories`: GitHub repositories allowed by the proxy.
-- `docker.bandwidthProbe`: Blob sampling duration and minimum accepted byte count.
-- `docker.accelerators`: Ordered Docker accelerators, enablement, registry scope, authentication, and timeout settings.
+- `docker.accelerators`: Docker accelerator enablement, registry scope, authentication, and timeout settings. All applicable entries are randomized per request.
 - `docker.registries`: Docker registry upstreams and allowlist policies.
 - `docker.repositories`: Docker image repositories that require allowlisting.
 

@@ -280,129 +280,6 @@ function isBlobRequest(context) {
   return context.upstreamPath.includes("/blobs/");
 }
 
-function streamBufferedChunks(chunks, reader) {
-  let chunkIndex = 0;
-  return new ReadableStream({
-    async pull(controller) {
-      if (chunkIndex < chunks.length) {
-        controller.enqueue(chunks[chunkIndex]);
-        chunkIndex += 1;
-        return;
-      }
-
-      try {
-        const result = await reader.read();
-        if (result.done) {
-          controller.close();
-          return;
-        }
-
-        controller.enqueue(result.value);
-      } catch (error) {
-        controller.error(error);
-      }
-    },
-    cancel(reason) {
-      return reader.cancel(reason);
-    },
-  });
-}
-
-async function readWithTimeout(reader, timeoutMs) {
-  let timeout;
-  const read = reader.read().then(
-    (result) => ({ result }),
-    (error) => ({ error }),
-  );
-  const expired = new Promise((resolve) => {
-    timeout = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
-  });
-
-  try {
-    return await Promise.race([ read, expired ]);
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function probeAcceleratorBandwidth(response) {
-  const probe = DOCKER.bandwidthProbe;
-  if (!probe || !response.body) {
-    return { response };
-  }
-
-  const contentLengthValue = response.headers.get("Content-Length");
-  const contentLength = contentLengthValue === null ? Number.NaN : Number(contentLengthValue);
-  if (Number.isFinite(contentLength) && contentLength >= 0 && contentLength < probe.minBytes) {
-    return {
-      response,
-      probe: {
-        bandwidthProbeSkipped: "content_length_below_threshold",
-      },
-    };
-  }
-
-  const reader = response.body.getReader();
-  const chunks = [];
-  const startedAt = Date.now();
-  const deadline = startedAt + probe.durationMs;
-  let bytes = 0;
-
-  while (bytes < probe.minBytes) {
-    const remainingMs = deadline - Date.now();
-    if (remainingMs <= 0) {
-      await reader.cancel("accelerator bandwidth below threshold");
-      const durationMs = Date.now() - startedAt;
-      return {
-        response: null,
-        fallbackReason: "accelerator_bandwidth_below_threshold",
-        bandwidthProbeBytes: bytes,
-        bandwidthProbeDurationMs: durationMs,
-        bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
-      };
-    }
-
-    const read = await readWithTimeout(reader, remainingMs);
-    if (read.timedOut) {
-      await reader.cancel("accelerator bandwidth below threshold");
-      const durationMs = Date.now() - startedAt;
-      return {
-        response: null,
-        fallbackReason: "accelerator_bandwidth_below_threshold",
-        bandwidthProbeBytes: bytes,
-        bandwidthProbeDurationMs: durationMs,
-        bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
-      };
-    }
-    if (read.error) {
-      throw read.error;
-    }
-    if (read.result.done) {
-      return {
-        response: new Response(streamBufferedChunks(chunks, reader), response),
-        probe: {
-          bandwidthProbeBytes: bytes,
-          bandwidthProbeDurationMs: Date.now() - startedAt,
-          bandwidthProbeCompleted: true,
-        },
-      };
-    }
-
-    chunks.push(read.result.value);
-    bytes += read.result.value.byteLength;
-  }
-
-  const durationMs = Date.now() - startedAt;
-  return {
-    response: new Response(streamBufferedChunks(chunks, reader), response),
-    probe: {
-      bandwidthProbeBytes: bytes,
-      bandwidthProbeDurationMs: durationMs,
-      bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
-    },
-  };
-}
-
 async function followAcceleratorRedirects(request, accelerator, response, responseUrl) {
   let currentResponse = response;
   let currentUrl = responseUrl;
@@ -528,10 +405,21 @@ function resolveDockerAccelerator(accelerator, registryName) {
   return accelerator;
 }
 
+function shuffleAccelerators(accelerators) {
+  const shuffled = [ ...accelerators ];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [ shuffled[index], shuffled[randomIndex] ] = [ shuffled[randomIndex], shuffled[index] ];
+  }
+
+  return shuffled;
+}
+
 function getDockerAccelerators(context) {
-  return DOCKER.accelerators
+  const accelerators = DOCKER.accelerators
     .map((accelerator) => resolveDockerAccelerator(accelerator, context.registry.name))
     .filter(Boolean);
+  return shuffleAccelerators(accelerators);
 }
 
 async function fetchDockerAccelerator(request, url, context, env, accelerator) {
@@ -565,28 +453,14 @@ async function fetchDockerAccelerator(request, url, context, env, accelerator) {
     const headers = copyProxyHeaders(response.headers);
 
     if (response.ok) {
-      let result = { response };
-      if (isBlobRequest(context) && request.method.toUpperCase() === "GET") {
-        result = await probeAcceleratorBandwidth(response);
-        if (!result.response) {
-          return {
-            ...result,
-            acceleratorStatus: response.status,
-            redirectHost: redirect.redirectHost,
-            redirectCount: redirect.redirectCount,
-          };
-        }
-      }
-
       return {
-        response: new Response(result.response.body, {
+        response: new Response(response.body, {
           status: response.status,
           headers,
         }),
         acceleratorStatus: response.status,
         redirectHost: redirect.redirectHost,
         redirectCount: redirect.redirectCount,
-        ...result.probe,
       };
     }
 
@@ -651,15 +525,7 @@ async function fetchDockerAccelerators(request, url, context, env) {
     const result = await fetchDockerAccelerator(request, url, context, env, accelerator);
     if (result.response) {
       const details = {};
-      for (const field of [
-        "redirectHost",
-        "redirectCount",
-        "bandwidthProbeSkipped",
-        "bandwidthProbeBytes",
-        "bandwidthProbeDurationMs",
-        "bandwidthProbeBytesPerSecond",
-        "bandwidthProbeCompleted",
-      ]) {
+      for (const field of [ "redirectHost", "redirectCount" ]) {
         if (result[field] !== undefined) {
           details[field] = result[field];
         }
@@ -679,7 +545,7 @@ async function fetchDockerAccelerators(request, url, context, env) {
     if (result.acceleratorStatus !== undefined) {
       attempt.status = result.acceleratorStatus;
     }
-    for (const field of [ "redirectHost", "redirectCount", "bandwidthProbeBytes", "bandwidthProbeDurationMs", "bandwidthProbeBytesPerSecond" ]) {
+    for (const field of [ "redirectHost", "redirectCount" ]) {
       if (result[field] !== undefined) {
         attempt[field] = result[field];
       }
