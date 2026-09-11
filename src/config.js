@@ -9,6 +9,7 @@ export const GITHUB = {
 export const DOCKER = {
   defaultRegistry: settings.docker.defaultRegistry,
   defaultNamespace: settings.docker.defaultNamespace,
+  bandwidthProbe: settings.docker.bandwidthProbe,
   accelerators: settings.docker.accelerators,
   registries: settings.docker.registries,
   repositories: settings.docker.repositories,
@@ -58,11 +59,13 @@ export const HOME_HTML = `<!doctype html>
         <tr><th>Network</th><th>URL</th></tr>
       </thead>
       <tbody>
-        <tr><td>Cloudflare global</td><td><a href="https://proxy.starudream.cn/">https://proxy.starudream.cn/</a></td></tr>
-        <tr><td>Tencent Cloud EdgeOne China</td><td><a href="https://proxy.52xckl.cn/">https://proxy.52xckl.cn/</a></td></tr>
+        <tr><td>Cloudflare Worker</td><td><a href="https://proxy.starudream.cn/">https://proxy.starudream.cn/</a></td></tr>
+        <tr><td>Alibaba Cloud ESA</td><td><a href="https://proxy.52xckl.cn/">https://proxy.52xckl.cn/</a></td></tr>
+        <tr><td>Alibaba Cloud ESA (explicit)</td><td><a href="https://proxy-esa.52xckl.cn/">https://proxy-esa.52xckl.cn/</a></td></tr>
+        <tr><td>Tencent Cloud TEO</td><td><a href="https://proxy-teo.52xckl.cn/">https://proxy-teo.52xckl.cn/</a></td></tr>
       </tbody>
     </table>
-    <p>Examples below use <code>proxy.starudream.cn</code>. Use <code>proxy.52xckl.cn</code> for the China endpoint.</p>
+    <p>Examples below use <code>proxy.starudream.cn</code>. Use <code>proxy.52xckl.cn</code> for the default China ESA endpoint, or select the explicit ESA or TEO endpoint above.</p>
 
     <section class="section">
       <h2>GitHub Proxy</h2>

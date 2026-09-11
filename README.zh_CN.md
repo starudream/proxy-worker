@@ -109,17 +109,17 @@ docker pull proxy.starudream.cn/quay.io/prometheus/prometheus:latest
 
 ### 上游优先级
 
-镜像拉取请求通过白名单检查后，按 DaoCloud、Docker Proxy、SparkCR、1ms、轩辕的顺序尝试适用于当前 registry 的加速服务。不支持当前 registry 的服务会被跳过：本配置中 Docker Proxy 和轩辕仅用于 Docker Hub，DaoCloud
+镜像拉取请求通过白名单检查后，按 SparkCR、DaoCloud、Docker Proxy、1ms、轩辕的顺序尝试适用于当前 registry 的加速服务。不支持当前 registry 的服务会被跳过：本配置中 Docker Proxy 和轩辕仅用于 Docker Hub，DaoCloud
 和 1ms 同时用于 Docker Hub 与 GHCR，SparkCR 用于其明确配置的 registry；GitLab Container Registry 当前直接使用源 registry。所有适用的加速服务都失败后，才回退到配置的源 registry。
 
-加速服务的 manifest 和未缓存 blob 会通过 Worker 流式返回；已缓存 blob 的 HTTPS 重定向会直接返回给 Docker，使 blob 数据不经过 Worker。重定向目标为 `docker.com` 或其子域名时，当前加速服务会被视为失败并继续尝试下一个，避免
-Docker 客户端直连国内不可访问的地址。响应开始流式传输后发生的错误无法再回退到其他加速服务或源 registry。
+每个加速服务的 GET blob 请求会在代理内部跟随最多 5 次 HTTPS 重定向，并在返回 Docker 前采样响应体。1 秒内读取达到 1 MiB 时判定当前加速服务可用；未达到阈值时取消响应并尝试下一个。已经完整返回或通过 `Content-Length`
+确认小于 1 MiB 的响应不要求达到阈值。通过检测后，代理会先返回已采样内容，再继续流式传输剩余响应；响应开始流式传输后发生的错误无法再回退到其他加速服务或源 registry。
 
-部署前需设置 `XUANYUAN_USERNAME` 和 `XUANYUAN_PASSWORD` Worker Secret。任一 Secret 缺失时，Docker Hub 请求会跳过加速并使用源 registry。
+轩辕需要运行环境提供 `XUANYUAN_USERNAME` 和 `XUANYUAN_PASSWORD`。任一变量缺失时，当前部署会跳过轩辕并继续使用源 registry。
 
 Workers Logs 会为每个 manifest、blob、标签列表或 referrers 请求记录一条结构化的 `docker upstream selected` 事件。通过 `registry`、`repository`、`resource`、`upstream`、`upstreamHost` 和 `status`
-字段可以确认实际选中的上游；manifest 事件还包含 `reference`。源 registry 事件还包含 `fallbackReason`，尝试过加速服务时同时包含 `acceleratorAttempts` 列表。自定义日志不记录
-token 和 registry 探测请求。
+字段可以确认实际选中的上游；manifest 事件还包含 `reference`，blob 事件按实际情况包含带宽采样和重定向字段。选中加速服务或源 registry 前存在失败尝试时还包含 `acceleratorAttempts` 列表，源 registry 事件同时包含
+`fallbackReason`。自定义日志不记录 token 和 registry 探测请求。
 
 GitHub 和 Docker 结构化事件还会在字段存在时记录长度受限的 `requestIp`、`userAgent`、`cfRay`、`country`、`accept` 和 `range`；每个请求头字段最多记录 512 个字符，不记录
 `Authorization`、`Cookie` 等敏感请求头。
@@ -150,6 +150,7 @@ SAMPLE_MIB=40 CHUNK_MIB=2 RUNS=5 bash scripts/benchmark-edge-bandwidth.sh
 
 - `github.owners`: 允许代理的 GitHub owner。
 - `github.repositories`: 允许代理的 GitHub 仓库。
+- `docker.bandwidthProbe`: blob 采样时长和最低可接受字节数。
 - `docker.accelerators`: Docker 加速服务的顺序、启用状态、registry 范围、鉴权和超时配置。
 - `docker.registries`: Docker registry 上游和白名单策略。
 - `docker.repositories`: 需要白名单的 Docker 镜像仓库。

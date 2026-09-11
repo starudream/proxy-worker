@@ -2,6 +2,7 @@ import { DOCKER } from "./config";
 import { commaList, copyProxyHeaders, corsPreflight, isAllowed, requestBody, requestLogFields, textResponse } from "./http";
 
 const DOCKER_HUB_REGISTRY = "docker.io";
+const MAX_ACCELERATOR_REDIRECTS = 5;
 
 function getConfiguredList(envValue, fallback) {
   if (!envValue) {
@@ -279,6 +280,192 @@ function isBlobRequest(context) {
   return context.upstreamPath.includes("/blobs/");
 }
 
+function streamBufferedChunks(chunks, reader) {
+  let chunkIndex = 0;
+  return new ReadableStream({
+    async pull(controller) {
+      if (chunkIndex < chunks.length) {
+        controller.enqueue(chunks[chunkIndex]);
+        chunkIndex += 1;
+        return;
+      }
+
+      try {
+        const result = await reader.read();
+        if (result.done) {
+          controller.close();
+          return;
+        }
+
+        controller.enqueue(result.value);
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+    cancel(reason) {
+      return reader.cancel(reason);
+    },
+  });
+}
+
+async function readWithTimeout(reader, timeoutMs) {
+  let timeout;
+  const read = reader.read().then(
+    (result) => ({ result }),
+    (error) => ({ error }),
+  );
+  const expired = new Promise((resolve) => {
+    timeout = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([ read, expired ]);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function probeAcceleratorBandwidth(response) {
+  const probe = DOCKER.bandwidthProbe;
+  if (!probe || !response.body) {
+    return { response };
+  }
+
+  const contentLengthValue = response.headers.get("Content-Length");
+  const contentLength = contentLengthValue === null ? Number.NaN : Number(contentLengthValue);
+  if (Number.isFinite(contentLength) && contentLength >= 0 && contentLength < probe.minBytes) {
+    return {
+      response,
+      probe: {
+        bandwidthProbeSkipped: "content_length_below_threshold",
+      },
+    };
+  }
+
+  const reader = response.body.getReader();
+  const chunks = [];
+  const startedAt = Date.now();
+  const deadline = startedAt + probe.durationMs;
+  let bytes = 0;
+
+  while (bytes < probe.minBytes) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      await reader.cancel("accelerator bandwidth below threshold");
+      const durationMs = Date.now() - startedAt;
+      return {
+        response: null,
+        fallbackReason: "accelerator_bandwidth_below_threshold",
+        bandwidthProbeBytes: bytes,
+        bandwidthProbeDurationMs: durationMs,
+        bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
+      };
+    }
+
+    const read = await readWithTimeout(reader, remainingMs);
+    if (read.timedOut) {
+      await reader.cancel("accelerator bandwidth below threshold");
+      const durationMs = Date.now() - startedAt;
+      return {
+        response: null,
+        fallbackReason: "accelerator_bandwidth_below_threshold",
+        bandwidthProbeBytes: bytes,
+        bandwidthProbeDurationMs: durationMs,
+        bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
+      };
+    }
+    if (read.error) {
+      throw read.error;
+    }
+    if (read.result.done) {
+      return {
+        response: new Response(streamBufferedChunks(chunks, reader), response),
+        probe: {
+          bandwidthProbeBytes: bytes,
+          bandwidthProbeDurationMs: Date.now() - startedAt,
+          bandwidthProbeCompleted: true,
+        },
+      };
+    }
+
+    chunks.push(read.result.value);
+    bytes += read.result.value.byteLength;
+  }
+
+  const durationMs = Date.now() - startedAt;
+  return {
+    response: new Response(streamBufferedChunks(chunks, reader), response),
+    probe: {
+      bandwidthProbeBytes: bytes,
+      bandwidthProbeDurationMs: durationMs,
+      bandwidthProbeBytesPerSecond: Math.round(bytes * 1000 / Math.max(durationMs, 1)),
+    },
+  };
+}
+
+async function followAcceleratorRedirects(request, accelerator, response, responseUrl) {
+  let currentResponse = response;
+  let currentUrl = responseUrl;
+  let redirects = 0;
+
+  while (isRedirectResponse(currentResponse)) {
+    if (redirects >= MAX_ACCELERATOR_REDIRECTS) {
+      await currentResponse.body?.cancel();
+      return {
+        response: null,
+        fallbackReason: "accelerator_redirect_limit_exceeded",
+        acceleratorStatus: currentResponse.status,
+      };
+    }
+
+    const location = currentResponse.headers.get("Location");
+    if (!location) {
+      await currentResponse.body?.cancel();
+      return {
+        response: null,
+        fallbackReason: "accelerator_redirect_location_missing",
+        acceleratorStatus: currentResponse.status,
+      };
+    }
+
+    let redirectUrl;
+    try {
+      redirectUrl = new URL(location, currentUrl);
+    } catch {
+      await currentResponse.body?.cancel();
+      return {
+        response: null,
+        fallbackReason: "accelerator_redirect_invalid",
+        acceleratorStatus: currentResponse.status,
+      };
+    }
+    if (redirectUrl.protocol !== "https:") {
+      await currentResponse.body?.cancel();
+      return {
+        response: null,
+        fallbackReason: "accelerator_redirect_insecure",
+        acceleratorStatus: currentResponse.status,
+      };
+    }
+
+    await currentResponse.body?.cancel();
+    currentResponse = await withAcceleratorTimeout(accelerator, (signal) => fetch(redirectUrl, {
+      method: request.method,
+      headers: buildRedirectHeaders(request),
+      redirect: "manual",
+      signal,
+    }));
+    currentUrl = redirectUrl;
+    redirects += 1;
+  }
+
+  return {
+    response: currentResponse,
+    redirectHost: redirects > 0 ? currentUrl.hostname : undefined,
+    redirectCount: redirects || undefined,
+  };
+}
+
 function getDockerResource(context) {
   const resourcePath = context.upstreamPath.slice(`/v2/${context.repository}/`.length);
   if (resourcePath.startsWith("manifests/")) {
@@ -359,21 +546,47 @@ async function fetchDockerAccelerator(request, url, context, env, accelerator) {
     }
 
     const acceleratorUrl = getAcceleratorUrl(accelerator, url, context);
-    const response = await withAcceleratorTimeout(accelerator, (signal) => fetch(acceleratorUrl, {
+    let response = await withAcceleratorTimeout(accelerator, (signal) => fetch(acceleratorUrl, {
       method: request.method,
       headers: buildAcceleratorHeaders(request, accelerator, tokenResponse.token),
       redirect: "manual",
       signal,
     }));
+
+    let redirect = {};
+    if (isBlobRequest(context) && request.method.toUpperCase() === "GET" && isRedirectResponse(response)) {
+      redirect = await followAcceleratorRedirects(request, accelerator, response, acceleratorUrl);
+      if (!redirect.response) {
+        return redirect;
+      }
+      response = redirect.response;
+    }
+
     const headers = copyProxyHeaders(response.headers);
 
     if (response.ok) {
-      logDockerUpstream(request, context, accelerator.name, accelerator.host, response.status);
+      let result = { response };
+      if (isBlobRequest(context) && request.method.toUpperCase() === "GET") {
+        result = await probeAcceleratorBandwidth(response);
+        if (!result.response) {
+          return {
+            ...result,
+            acceleratorStatus: response.status,
+            redirectHost: redirect.redirectHost,
+            redirectCount: redirect.redirectCount,
+          };
+        }
+      }
+
       return {
-        response: new Response(response.body, {
+        response: new Response(result.response.body, {
           status: response.status,
           headers,
         }),
+        acceleratorStatus: response.status,
+        redirectHost: redirect.redirectHost,
+        redirectCount: redirect.redirectCount,
+        ...result.probe,
       };
     }
 
@@ -391,12 +604,12 @@ async function fetchDockerAccelerator(request, url, context, env, accelerator) {
         }
 
         headers.set("Location", redirectUrl.href);
-        logDockerUpstream(request, context, accelerator.name, accelerator.host, response.status);
         return {
           response: new Response(response.body, {
             status: response.status,
             headers,
           }),
+          acceleratorStatus: response.status,
         };
       }
     }
@@ -437,7 +650,25 @@ async function fetchDockerAccelerators(request, url, context, env) {
   for (const accelerator of accelerators) {
     const result = await fetchDockerAccelerator(request, url, context, env, accelerator);
     if (result.response) {
-      return result;
+      const details = {};
+      for (const field of [
+        "redirectHost",
+        "redirectCount",
+        "bandwidthProbeSkipped",
+        "bandwidthProbeBytes",
+        "bandwidthProbeDurationMs",
+        "bandwidthProbeBytesPerSecond",
+        "bandwidthProbeCompleted",
+      ]) {
+        if (result[field] !== undefined) {
+          details[field] = result[field];
+        }
+      }
+      if (attempts.length > 0) {
+        details.acceleratorAttempts = attempts;
+      }
+      logDockerUpstream(request, context, accelerator.name, accelerator.host, result.acceleratorStatus, details);
+      return { response: result.response };
     }
 
     const attempt = {
@@ -447,6 +678,11 @@ async function fetchDockerAccelerators(request, url, context, env) {
     };
     if (result.acceleratorStatus !== undefined) {
       attempt.status = result.acceleratorStatus;
+    }
+    for (const field of [ "redirectHost", "redirectCount", "bandwidthProbeBytes", "bandwidthProbeDurationMs", "bandwidthProbeBytesPerSecond" ]) {
+      if (result[field] !== undefined) {
+        attempt[field] = result[field];
+      }
     }
     attempts.push(attempt);
   }

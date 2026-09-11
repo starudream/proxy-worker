@@ -30,28 +30,11 @@
   "docker": {
     "defaultRegistry": "docker.io",
     "defaultNamespace": "library",
+    "bandwidthProbe": {
+      "durationMs": 1000,
+      "minBytes": 1048576
+    },
     "accelerators": [
-      {
-        "name": "daocloud",
-        "enabled": false,
-        "hosts": {
-          "docker.io": "docker.m.daocloud.io",
-          "ghcr.io": "ghcr.m.daocloud.io"
-        },
-        "authPath": "/auth/token",
-        "includeRegistryInPath": false,
-        "timeoutMs": 5000
-      },
-      {
-        "name": "dockerproxy",
-        "enabled": false,
-        "host": "dockerproxy.net",
-        "includeRegistryInPath": false,
-        "registries": [
-          "docker.io"
-        ],
-        "timeoutMs": 5000
-      },
       {
         "name": "spark",
         "enabled": true,
@@ -71,8 +54,29 @@
         "timeoutMs": 5000
       },
       {
+        "name": "daocloud",
+        "enabled": true,
+        "hosts": {
+          "docker.io": "docker.m.daocloud.io",
+          "ghcr.io": "ghcr.m.daocloud.io"
+        },
+        "authPath": "/auth/token",
+        "includeRegistryInPath": false,
+        "timeoutMs": 5000
+      },
+      {
+        "name": "dockerproxy",
+        "enabled": true,
+        "host": "dockerproxy.net",
+        "includeRegistryInPath": false,
+        "registries": [
+          "docker.io"
+        ],
+        "timeoutMs": 5000
+      },
+      {
         "name": "1ms",
-        "enabled": false,
+        "enabled": true,
         "hosts": {
           "docker.io": "docker.1ms.run",
           "ghcr.io": "ghcr.1ms.run"
@@ -83,7 +87,7 @@
       },
       {
         "name": "xuanyuan",
-        "enabled": false,
+        "enabled": true,
         "host": "docker.xuanyuan.run",
         "authPath": "/auth/token",
         "authService": "docker.xuanyuan.run",
