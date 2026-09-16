@@ -24,7 +24,8 @@
       "MetaCubeX/mihomo",
       "mtrojnar/osslsigncode",
       "pgbackrest/pgbackrest",
-      "TG-Twilight/AWAvenue-Ads-Rule"
+      "TG-Twilight/AWAvenue-Ads-Rule",
+      "XTLS/go-win7"
     ]
   },
   "docker": {
