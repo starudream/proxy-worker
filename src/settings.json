@@ -223,6 +223,7 @@
       "ghcr.io/librespeed/speedtest",
       "ghcr.io/mhsanaei/3x-ui",
       "ghcr.io/seriousm4x/upsnap",
+      "ghcr.io/tale/headplane",
       "ghcr.io/xtls/xray-core",
       "quay.io/prometheus/prometheus"
     ]
