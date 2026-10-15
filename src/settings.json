@@ -201,6 +201,7 @@
       "docker.io/openproject/openproject",
       "docker.io/openvpn/openvpn-as",
       "docker.io/paradedb/paradedb",
+      "docker.io/pgsty/silo",
       "docker.io/pgvector/pgvector",
       "docker.io/pihole/pihole",
       "docker.io/prom/alertmanager",
