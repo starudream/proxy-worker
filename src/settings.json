@@ -177,6 +177,7 @@
       "docker.io/clickhouse/clickhouse-server",
       "docker.io/dbeaver/cloudbeaver",
       "docker.io/diygod/rsshub",
+      "docker.io/dpage/pgadmin4",
       "docker.io/easysoft/zentao",
       "docker.io/eceasy/cli-proxy-api",
       "docker.io/erikdubbelboer/phpredisadmin",
