@@ -12,6 +12,7 @@
     ],
     "repositories": [
       "clash-verge-rev/clash-verge-rev",
+      "cloudnative-pg/charts",
       "daijro/camoufox",
       "dimitri/pgloader",
       "dr5hn/countries-states-cities-database",
@@ -24,10 +25,12 @@
       "MetaCubeX/meta-rules-dat",
       "MetaCubeX/mihomo",
       "mtrojnar/osslsigncode",
+      "OT-CONTAINER-KIT/helm-charts",
       "P3TERX/GeoLite.mmdb",
       "pgbackrest/pgbackrest",
       "seakee/CPA-Manager-Plus",
       "TG-Twilight/AWAvenue-Ads-Rule",
+      "VictoriaMetrics/helm-charts",
       "XTLS/go-win7"
     ]
   },
